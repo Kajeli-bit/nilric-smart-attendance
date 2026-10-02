@@ -93,6 +93,10 @@ That message is Auth.js failing to start. Work through this list:
 `https://YOUR-SITE.netlify.app/api/auth/debug`  
 You should see `readyForGoogleSso: true` and all required `has*` flags true. Secret values are never returned.
 
+**Attendance / database diagnostics:**  
+`https://YOUR-SITE.netlify.app/api/attendance/diag`  
+Shows whether Netlify Database is reachable, the `workers.email` column exists, and `attendance_days` is present. Fix any `false` / error before retrying check-in.
+
 **Netlify logs:** Functions logs after clicking *Sign in with Google* will show clearer errors (e.g. missing `AUTH_SECRET`) now that config fails fast with named errors.
 
 ### 5. Common Google errors (after auth config is fixed)

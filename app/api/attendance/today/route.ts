@@ -6,6 +6,7 @@ import {
   getTodayAttendance,
   upsertWorkerByEmail,
 } from "@/lib/workers";
+import { dbErrorResponse } from "@/lib/db-errors";
 import type { TodayStatusBody } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -57,10 +58,6 @@ export async function GET() {
 
     return NextResponse.json(responseBody);
   } catch (err) {
-    console.error("today status error", err);
-    return NextResponse.json(
-      { error: "INTERNAL", message: "Internal Server Error" },
-      { status: 500 },
-    );
+    return dbErrorResponse(err);
   }
 }

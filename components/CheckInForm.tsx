@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import type { GpsCoords } from "@/lib/types";
 import { GoogleSignInButton, UserBadge } from "@/components/AuthButtons";
@@ -79,13 +79,20 @@ export function CheckInForm() {
   const [today, setToday] = useState<TodayState | null>(null);
   const [status, setStatus] = useState<StatusState>({ kind: "idle", message: "" });
   const [busy, setBusy] = useState(false);
-  const [loadingToday, setLoadingToday] = useState(false);
 
   async function loadToday() {
-    setLoadingToday(true);
     try {
       const res = await fetch("/api/attendance/today", { credentials: "include" });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as {
+          message?: string;
+          error?: string;
+        } | null;
+        if (data?.message) {
+          setStatus({ kind: "error", message: data.message });
+        }
+        return;
+      }
       const data = (await res.json()) as {
         checkedIn: boolean;
         checkedOut: boolean;
@@ -107,10 +114,22 @@ export function CheckInForm() {
       if (data.message) {
         setStatus({ kind: "success", message: data.message });
       }
-    } finally {
-      setLoadingToday(false);
+    } catch {
+      // ignore network blips on initial load
     }
   }
+
+  useEffect(() => {
+    if (authStatus !== "authenticated") return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (!cancelled) void loadToday();
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [authStatus]);
 
   async function submit(action: "check_in" | "check_out") {
     if (busy) return;

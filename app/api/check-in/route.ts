@@ -7,6 +7,7 @@ import {
   getTodayAttendance,
   upsertWorkerByEmail,
 } from "@/lib/workers";
+import { dbErrorResponse } from "@/lib/db-errors";
 import type { AttendanceActionBody, VerificationMethod } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -167,7 +168,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(responseBody, { status: 201 });
   } catch (err) {
-    console.error("check-in error", err);
-    return errorJson(500, "INTERNAL", "Internal Server Error");
+    return dbErrorResponse(err);
   }
 }

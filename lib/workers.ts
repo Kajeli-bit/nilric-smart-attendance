@@ -28,7 +28,8 @@ export function displayNameFromEmail(
 export function employeeCodeFromEmail(email: string): string {
   const local = email.split("@")[0] ?? email;
   const cleaned = local.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 12);
-  return `EMP-${cleaned}`;
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `EMP-${cleaned || "WORKER"}-${suffix}`;
 }
 
 export async function findWorkerByEmail(email: string): Promise<Worker | null> {
@@ -51,25 +52,35 @@ export async function upsertWorkerByEmail(
 
   const existing = await findWorkerByEmail(normalized);
   if (existing) {
-    if (!existing.name && name) {
+    if (!existing.name?.trim() && name) {
       const updated = await dbi.sql<Worker>`
         UPDATE workers SET name = ${name}, updated_at = NOW()
         WHERE id = ${existing.id}
         RETURNING id, employee_code, name, email, active, created_at, updated_at
       `;
-      return updated[0]!;
+      return updated[0] ?? existing;
     }
     return existing;
   }
 
-  const inserted = await dbi.sql<Worker>`
-    INSERT INTO workers (email, name, employee_code, active)
-    VALUES (${normalized}, ${name}, ${employeeCodeFromEmail(normalized)}, TRUE)
-    ON CONFLICT (email) DO UPDATE
-      SET name = EXCLUDED.name, updated_at = NOW()
-    RETURNING id, employee_code, name, email, active, created_at, updated_at
-  `;
-  return inserted[0]!;
+  try {
+    const inserted = await dbi.sql<Worker>`
+      INSERT INTO workers (email, name, employee_code, active)
+      VALUES (${normalized}, ${name}, ${employeeCodeFromEmail(normalized)}, TRUE)
+      RETURNING id, employee_code, name, email, active, created_at, updated_at
+    `;
+    if (!inserted[0]) {
+      const again = await findWorkerByEmail(normalized);
+      if (again) return again;
+      throw new Error("Worker insert returned no row");
+    }
+    return inserted[0];
+  } catch (err) {
+    // Unique email race: another request created the worker first
+    const again = await findWorkerByEmail(normalized);
+    if (again) return again;
+    throw err;
+  }
 }
 
 export async function getTodayAttendance(workerId: string) {
@@ -84,12 +95,13 @@ export async function getTodayAttendance(workerId: string) {
 
   const rows = await dbi.sql<{
     id: string;
+    attendance_day: string;
     check_in_at: string | null;
     check_out_at: string | null;
     check_in_method: string | null;
     check_out_method: string | null;
   }>`
-    SELECT id, check_in_at, check_out_at, check_in_method, check_out_method
+    SELECT id, attendance_day, check_in_at, check_out_at, check_in_method, check_out_method
     FROM attendance_days
     WHERE worker_id = ${workerId} AND attendance_day = ${day}::date
   `;
