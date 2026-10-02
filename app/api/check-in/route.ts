@@ -1,118 +1,71 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { officeDayKey } from "@/lib/attendance-day";
+import { requireWorker, isResponse } from "@/lib/session";
+import { getOfficeConfig, welcomeMessage } from "@/lib/env";
 import { getClientIp, parseGps, verifyAttendance } from "@/lib/verification";
-import type {
-  ApiErrorBody,
-  CheckInSuccessBody,
-  VerificationMethod,
-} from "@/lib/types";
+import {
+  getDb,
+  getTodayAttendance,
+  upsertWorkerByEmail,
+} from "@/lib/workers";
+import type { AttendanceActionBody, VerificationMethod } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function errorJson(status: number, error: string, message: string) {
-  return NextResponse.json({ error, message } satisfies ApiErrorBody, { status });
-}
-
-function normalizeCode(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
-  const code = raw.trim().toUpperCase();
-  if (!code) return null;
-  return code;
+  return NextResponse.json({ error, message }, { status });
 }
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as {
-      employeeCode?: unknown;
-      name?: unknown;
+    const user = await requireWorker();
+    if (isResponse(user)) return user;
+
+    const body = (await request.json().catch(() => ({}))) as {
       gps?: unknown;
     };
 
-    const employeeCode = normalizeCode(body.employeeCode);
-    const name = typeof body.name === "string" ? body.name.trim() : "";
-
-    if (!employeeCode) {
-      return errorJson(400, "INVALID_INPUT", "Employee code is required");
-    }
-    if (!name) {
-      return errorJson(400, "INVALID_INPUT", "Name is required for check-in");
-    }
-
     const gps = parseGps(body.gps);
+    if (!gps) {
+      return errorJson(
+        400,
+        "LOCATION_REQUIRED",
+        "Location access is required to check in. Allow location and try again.",
+      );
+    }
+
     const clientIp = getClientIp(request.headers);
     const verification = verifyAttendance(clientIp, gps);
-
     if (!verification.ok) {
       return errorJson(422, "NOT_VERIFIED", verification.reason);
     }
 
     const method: VerificationMethod = verification.method;
-    const attendanceDay = officeDayKey();
+    const office = getOfficeConfig();
+    const db = getDb();
     const occurredAt = new Date().toISOString();
 
-    // Find existing worker
-    const existing = await db.sql<{
-      id: string;
-      employee_code: string;
-      name: string;
-      active: boolean;
-    }>`SELECT id, employee_code, name, active FROM workers WHERE employee_code = ${employeeCode}`;
-
-    let worker = existing[0];
-    let createdWorker = false;
-
-    if (!worker) {
-      const inserted = await db.sql<{
-        id: string;
-        employee_code: string;
-        name: string;
-        active: boolean;
-      }>`
-        INSERT INTO workers (employee_code, name, active)
-        VALUES (${employeeCode}, ${name}, TRUE)
-        RETURNING id, employee_code, name, active
-      `;
-      worker = inserted[0]!;
-      createdWorker = true;
-    } else if (!worker.active) {
+    const worker = await upsertWorkerByEmail(user.email, user.name);
+    if (!worker.active) {
       return errorJson(409, "INACTIVE_WORKER", "Worker is deactivated");
-    } else if (worker.name !== name) {
-      // Update name only after successful verification
-      const updated = await db.sql<{ name: string }>`
-        UPDATE workers SET name = ${name}, updated_at = NOW()
-        WHERE id = ${worker.id}
-        RETURNING name
-      `;
-      worker = { ...worker, name: updated[0]!.name };
     }
 
-    // Check for existing attendance today
-    const todayRows = await db.sql<{
-      id: string;
-      check_in_at: string | null;
-      check_out_at: string | null;
-    }>`
-      SELECT id, check_in_at, check_out_at
-      FROM attendance_days
-      WHERE worker_id = ${worker.id} AND attendance_day = ${attendanceDay}::date
-    `;
+    const { day: attendanceDay, row: existingDay } = await getTodayAttendance(
+      worker.id,
+    );
 
-    const existingDay = todayRows[0];
-    if (existingDay && existingDay.check_in_at && !existingDay.check_out_at) {
+    if (existingDay?.check_in_at && !existingDay.check_out_at) {
       return errorJson(
         409,
         "ALREADY_CHECKED_IN",
         "You have already checked in today. Check out first.",
       );
     }
-    if (existingDay && existingDay.check_in_at && existingDay.check_out_at) {
-      // Already fully closed — reject re-check-in same day
+    if (existingDay?.check_in_at && existingDay.check_out_at) {
       return errorJson(
         409,
         "ALREADY_CHECKED_IN",
-        "Attendance for today is already closed. Check-out then re-check-in is not allowed after close.",
+        "Attendance for today is already closed.",
       );
     }
 
@@ -142,20 +95,14 @@ export async function POST(request: Request) {
         RETURNING id
       `;
       if (!inserted[0]) {
-        // Lost race — re-read
-        const again = await db.sql<{ id: string; check_in_at: string }>`
-          SELECT id, check_in_at FROM attendance_days
-          WHERE worker_id = ${worker.id} AND attendance_day = ${attendanceDay}::date
-        `;
-        const row = again[0];
-        if (row?.check_in_at) {
-          return errorJson(409, "ALREADY_CHECKED_IN", "You have already checked in today.");
-        }
-        return errorJson(409, "ALREADY_CHECKED_IN", "Conflict creating attendance record.");
+        return errorJson(
+          409,
+          "ALREADY_CHECKED_IN",
+          "You have already checked in today.",
+        );
       }
       attendanceId = inserted[0].id;
     } else {
-      // existingDay without check_in_at shouldn't happen (NOT NULL), but handle safely
       attendanceId = existingDay.id;
       await db.sql`
         UPDATE attendance_days
@@ -194,24 +141,28 @@ export async function POST(request: Request) {
       )
     `;
 
-    // Silence unused variable warning path for createdWorker if needed later
-    void createdWorker;
-
-    const responseBody: CheckInSuccessBody = {
+    const responseBody: AttendanceActionBody = {
       ok: true,
       action: "check_in",
       worker: {
         id: worker.id,
-        employeeCode: worker.employee_code,
         name: worker.name,
+        email: worker.email,
+      },
+      office: {
+        name: office.name,
+        city: office.city,
       },
       attendance: {
         attendanceDay,
-        checkInAt: occurredAt,
+        at: occurredAt,
         method,
         distanceMeters:
-          verification.distanceM === null ? null : Math.round(verification.distanceM),
+          verification.distanceM === null
+            ? null
+            : Math.round(verification.distanceM),
       },
+      message: welcomeMessage(worker.name),
     };
 
     return NextResponse.json(responseBody, { status: 201 });

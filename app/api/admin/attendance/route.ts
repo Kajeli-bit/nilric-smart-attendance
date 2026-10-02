@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { isAdminAuthenticated, unauthorized } from "@/lib/admin-auth";
+import { requireAdmin, isResponse } from "@/lib/session";
+import { getDb } from "@/lib/workers";
 import { buildReportRows } from "@/lib/report";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  if (!isAdminAuthenticated(request)) return unauthorized();
+  const admin = await requireAdmin();
+  if (isResponse(admin)) return admin;
 
   try {
+    const db = getDb();
     const url = new URL(request.url);
     const from = url.searchParams.get("from")?.trim();
     const to = url.searchParams.get("to")?.trim();
@@ -34,8 +36,9 @@ export async function GET(request: Request) {
     const sql = `
       SELECT
         ad.worker_id,
-        w.employee_code,
+        COALESCE(w.employee_code, w.email) AS employee_code,
         w.name,
+        w.email,
         ad.attendance_day,
         ad.check_in_at,
         ad.check_out_at,
@@ -46,7 +49,7 @@ export async function GET(request: Request) {
       FROM attendance_days ad
       JOIN workers w ON w.id = ad.worker_id
       WHERE ${conditions.join(" AND ")}
-      ORDER BY ad.attendance_day DESC, w.employee_code ASC
+      ORDER BY ad.attendance_day DESC, w.name ASC
       LIMIT 5000
     `;
 

@@ -1,7 +1,6 @@
 function sanitizeCell(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return "";
   const s = String(value);
-  // Prevent spreadsheet formula injection
   if (/^[=+\-@\t\r]/.test(s)) {
     return `'${s}`;
   }
@@ -15,7 +14,10 @@ function escapeCsv(value: string): string {
   return value;
 }
 
-export function toCsv(headers: string[], rows: (string | number | null | undefined)[][]): string {
+export function toCsv(
+  headers: string[],
+  rows: (string | number | null | undefined)[][],
+): string {
   const lines = [headers.map(escapeCsv).join(",")];
   for (const row of rows) {
     lines.push(row.map((cell) => escapeCsv(sanitizeCell(cell))).join(","));
@@ -27,6 +29,7 @@ export function csvHeaders(): string[] {
   return [
     "employee_code",
     "name",
+    "email",
     "attendance_day",
     "check_in_at",
     "check_out_at",

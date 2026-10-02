@@ -17,6 +17,10 @@ export default function AdminWorkerDetailPage() {
     async function load() {
       if (!id) return;
       const res = await fetch(`/api/admin/workers/${id}`, { credentials: "include" });
+      if (res.status === 401 || res.status === 403) {
+        setError("Admin Google sign-in required");
+        return;
+      }
       if (!res.ok) {
         setError("Worker not found");
         return;
@@ -24,7 +28,7 @@ export default function AdminWorkerDetailPage() {
       const data = (await res.json()) as { worker: Worker };
       setWorker(data.worker);
       setName(data.worker.name);
-      setCode(data.worker.employee_code);
+      setCode(data.worker.employee_code ?? "");
     }
     load();
   }, [id]);
@@ -44,6 +48,8 @@ export default function AdminWorkerDetailPage() {
       setError(data.message || "Update failed");
       return;
     }
+    const data = (await res.json()) as { worker: Worker };
+    setWorker(data.worker);
     setMessage("Saved");
   }
 
@@ -53,13 +59,16 @@ export default function AdminWorkerDetailPage() {
   return (
     <div className="max-w-md">
       <h1 className="mb-4 text-2xl font-bold text-slate-900">Edit worker</h1>
-      <form onSubmit={save} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+      <form
+        onSubmit={save}
+        className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5"
+      >
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Employee code</label>
+          <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
           <input
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2"
+            value={worker.email || "—"}
+            readOnly
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-600"
           />
         </div>
         <div>
@@ -67,6 +76,16 @@ export default function AdminWorkerDetailPage() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
+            className="w-full rounded-xl border border-slate-300 px-3 py-2"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">
+            Employee code
+          </label>
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
             className="w-full rounded-xl border border-slate-300 px-3 py-2"
           />
         </div>

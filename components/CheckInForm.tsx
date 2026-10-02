@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useSession } from "next-auth/react";
 import type { GpsCoords } from "@/lib/types";
+import { GoogleSignInButton, UserBadge } from "@/components/AuthButtons";
+import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 
-type StatusKind = "idle" | "locating" | "success" | "error";
+type StatusKind = "idle" | "locating" | "requesting_location" | "success" | "error";
 
 interface StatusState {
   kind: StatusKind;
@@ -12,10 +15,20 @@ interface StatusState {
   distance?: number | null;
 }
 
-function requestGps(): Promise<GpsCoords | null> {
+interface TodayState {
+  checkedIn: boolean;
+  checkedOut: boolean;
+  checkInAt: string | null;
+  checkOutAt: string | null;
+  officeName: string;
+  officeCity: string;
+  workerName: string;
+}
+
+function requestGps(): Promise<GpsCoords | { error: string; code?: string } | null> {
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
-      resolve(null);
+      resolve({ error: "Location is not supported on this device.", code: "UNSUPPORTED" });
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -24,88 +37,124 @@ function requestGps(): Promise<GpsCoords | null> {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         }),
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          resolve({
+            error:
+              "Location permission denied. Please allow location access to check in or out.",
+            code: "PERMISSION_DENIED",
+          });
+        } else if (err.code === err.TIMEOUT) {
+          resolve({
+            error: "Getting your location timed out. Please try again.",
+            code: "TIMEOUT",
+          });
+        } else {
+          resolve({
+            error: "Could not get your location. Please try again.",
+            code: "UNAVAILABLE",
+          });
+        }
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
     );
   });
 }
 
-function useOnline(): boolean {
-  const [online, setOnline] = useState(true);
-
-  useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
-    const id = window.setTimeout(update, 0);
-    window.addEventListener("online", update);
-    window.addEventListener("offline", update);
-    return () => {
-      window.clearTimeout(id);
-      window.removeEventListener("online", update);
-      window.removeEventListener("offline", update);
-    };
-  }, []);
-
-  return online;
+function formatTime(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Africa/Dar_es_Salaam",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
 }
 
 export function CheckInForm() {
-  const [employeeCode, setEmployeeCode] = useState("");
-  const [name, setName] = useState("");
-  const online = useOnline();
-  const [status, setStatus] = useState<StatusState>({
-    kind: "idle",
-    message: "",
-  });
+  const { data: session, status: authStatus } = useSession();
+  const [today, setToday] = useState<TodayState | null>(null);
+  const [status, setStatus] = useState<StatusState>({ kind: "idle", message: "" });
   const [busy, setBusy] = useState(false);
+  const [loadingToday, setLoadingToday] = useState(false);
+
+  async function loadToday() {
+    setLoadingToday(true);
+    try {
+      const res = await fetch("/api/attendance/today", { credentials: "include" });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        checkedIn: boolean;
+        checkedOut: boolean;
+        checkInAt: string | null;
+        checkOutAt: string | null;
+        office: { name: string; city: string };
+        worker: { name: string };
+        message: string | null;
+      };
+      setToday({
+        checkedIn: data.checkedIn,
+        checkedOut: data.checkedOut,
+        checkInAt: data.checkInAt,
+        checkOutAt: data.checkOutAt,
+        officeName: data.office.name,
+        officeCity: data.office.city,
+        workerName: data.worker.name,
+      });
+      if (data.message) {
+        setStatus({ kind: "success", message: data.message });
+      }
+    } finally {
+      setLoadingToday(false);
+    }
+  }
 
   async function submit(action: "check_in" | "check_out") {
     if (busy) return;
-    if (!employeeCode.trim()) {
-      setStatus({ kind: "error", message: "Enter your employee code" });
-      return;
-    }
-    if (action === "check_in" && !name.trim()) {
-      setStatus({ kind: "error", message: "Enter your name to check in" });
-      return;
-    }
-    if (!navigator.onLine) {
+    setBusy(true);
+
+    setStatus({
+      kind: "requesting_location",
+      message: "Please allow location access to continue…",
+    });
+
+    const gpsResult = await requestGps();
+    if (!gpsResult || "error" in gpsResult) {
       setStatus({
         kind: "error",
-        message: "You are offline. Check-in requires an internet connection.",
+        message:
+          gpsResult?.error ||
+          "Location access is required to check in or out.",
       });
+      setBusy(false);
       return;
     }
 
-    setBusy(true);
     setStatus({
       kind: "locating",
       message:
         action === "check_in"
-          ? "Getting your location…"
-          : "Getting your location for check-out…",
+          ? "Location allowed. Checking you in…"
+          : "Location allowed. Checking you out…",
     });
-
-    const gps = await requestGps();
-
-    setStatus({ kind: "locating", message: "Verifying you are at the office…" });
 
     try {
       const endpoint = action === "check_in" ? "/api/check-in" : "/api/check-out";
-      const payload: Record<string, unknown> = {
-        employeeCode: employeeCode.trim(),
-      };
-      if (action === "check_in") payload.name = name.trim();
-      if (gps) payload.gps = gps;
-
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        credentials: "include",
+        body: JSON.stringify({ gps: gpsResult }),
       });
       const data = (await res.json()) as {
         ok?: boolean;
         error?: string;
         message?: string;
+        office?: { name: string; city: string };
+        worker?: { name: string };
         attendance?: {
           method?: string;
           distanceMeters?: number | null;
@@ -125,12 +174,14 @@ export function CheckInForm() {
       setStatus({
         kind: "success",
         message:
-          action === "check_in"
-            ? `Checked in successfully via ${method === "office_ip" ? "office Wi-Fi" : "GPS"}!`
-            : `Checked out successfully via ${method === "office_ip" ? "office Wi-Fi" : "GPS"}!`,
+          data.message ||
+          (action === "check_in"
+            ? `Checked in via ${method === "office_ip" ? "office Wi-Fi" : "GPS"}.`
+            : `Checked out via ${method === "office_ip" ? "office Wi-Fi" : "GPS"}.`),
         method,
         distance: dist,
       });
+      await loadToday();
     } catch {
       setStatus({
         kind: "error",
@@ -141,49 +192,72 @@ export function CheckInForm() {
     }
   }
 
+  if (authStatus === "loading") {
+    return (
+      <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-5 text-center text-slate-600">
+        Loading…
+      </div>
+    );
+  }
+
+  if (authStatus !== "authenticated") {
+    return (
+      <div className="mx-auto w-full max-w-md space-y-4">
+        <InstallAppPrompt />
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-900">Sign in required</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Use your Google account to check in or out. This prevents credential sharing.
+          </p>
+          <div className="mt-4">
+            <GoogleSignInButton />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const workerName = today?.workerName || session?.user?.name || session?.user?.email || "there";
+  const officeLabel = today?.officeCity
+    ? `${today.officeName}, ${today.officeCity}`
+    : today?.officeName || "the office";
+
   return (
     <div className="mx-auto w-full max-w-md space-y-4">
-      {!online && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-          You are offline. Check-in/out needs an internet connection.
-        </div>
-      )}
+      <InstallAppPrompt />
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <UserBadge />
+        <p className="mt-2 text-sm text-slate-600">
+          Signed in as <strong>{session?.user?.email}</strong>
+        </p>
+      </div>
 
       <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div>
-          <label
-            htmlFor="employeeCode"
-            className="mb-1 block text-sm font-medium text-slate-700"
-          >
-            Employee code
-          </label>
-          <input
-            id="employeeCode"
-            value={employeeCode}
-            onChange={(e) => setEmployeeCode(e.target.value.toUpperCase())}
-            placeholder="e.g. NIL-001"
-            autoComplete="username"
-            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
-          />
+        <div className="rounded-xl bg-teal-50 p-3 text-sm text-teal-900">
+          <p className="font-semibold">Office</p>
+          <p>{officeLabel}</p>
+          {today && (
+            <p className="mt-1 text-xs text-teal-800">
+              {today.checkedIn && !today.checkedOut
+                ? `Checked in at ${formatTime(today.checkInAt)}`
+                : today.checkedIn && today.checkedOut
+                  ? `In ${formatTime(today.checkInAt)} → Out ${formatTime(today.checkOutAt)}`
+                  : "Not checked in yet today"}
+            </p>
+          )}
+          {loadingToday && <p className="mt-1 text-xs">Refreshing status…</p>}
         </div>
-        <div>
-          <label htmlFor="name" className="mb-1 block text-sm font-medium text-slate-700">
-            Name
-          </label>
-          <input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your full name"
-            autoComplete="name"
-            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-base outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
-          />
-        </div>
+
+        <p className="text-sm text-slate-600">
+          Hi <strong>{workerName}</strong>. Location access is required for every
+          check-in and check-out.
+        </p>
 
         <div className="grid grid-cols-2 gap-3 pt-1">
           <button
             type="button"
-            disabled={busy || !online}
+            disabled={busy || today?.checkedIn === true}
             onClick={() => submit("check_in")}
             className="rounded-xl bg-teal-700 px-4 py-3 text-base font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -191,7 +265,7 @@ export function CheckInForm() {
           </button>
           <button
             type="button"
-            disabled={busy || !online}
+            disabled={busy || !today?.checkedIn || today?.checkedOut === true}
             onClick={() => submit("check_out")}
             className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -211,12 +285,15 @@ export function CheckInForm() {
           }`}
           role="status"
         >
-          <p>{status.message}</p>
+          <p className={status.kind === "success" ? "text-base font-semibold" : ""}>
+            {status.message}
+          </p>
           {status.kind === "success" &&
             status.distance !== null &&
             status.distance !== undefined && (
               <p className="mt-1 text-xs text-teal-800">
                 {Math.round(status.distance)}m from office
+                {status.method ? ` · verified via ${status.method === "office_ip" ? "office Wi-Fi" : "GPS"}` : ""}
               </p>
             )}
         </div>

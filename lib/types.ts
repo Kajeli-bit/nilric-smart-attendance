@@ -9,8 +9,9 @@ export interface GpsCoords {
 
 export interface Worker {
   id: string;
-  employee_code: string;
+  employee_code: string | null;
   name: string;
+  email: string;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -51,8 +52,9 @@ export type VerificationResult = VerificationSuccess | VerificationFailure;
 
 export interface AttendanceReportRow {
   workerId: string;
-  employeeCode: string;
+  employeeCode: string | null;
   name: string;
+  email: string;
   attendanceDay: string;
   checkInAt: string;
   checkOutAt: string | null;
@@ -68,34 +70,44 @@ export interface ApiErrorBody {
   message: string;
 }
 
-export interface CheckInSuccessBody {
+export interface AttendanceActionBody {
   ok: true;
-  action: "check_in";
+  action: "check_in" | "check_out";
   worker: {
     id: string;
-    employeeCode: string;
     name: string;
+    email: string;
+  };
+  office: {
+    name: string;
+    city: string;
   };
   attendance: {
     attendanceDay: string;
-    checkInAt: string;
+    at: string;
     method: VerificationMethod;
     distanceMeters: number | null;
   };
+  message: string;
 }
 
-export interface CheckOutSuccessBody {
+export interface TodayStatusBody {
   ok: true;
-  action: "check_out";
   worker: {
     id: string;
-    employeeCode: string;
     name: string;
+    email: string;
   };
-  attendance: {
-    attendanceDay: string;
-    checkOutAt: string;
-    method: VerificationMethod;
-    distanceMeters: number | null;
+  office: {
+    name: string;
+    city: string;
   };
+  attendanceDay: string;
+  checkedIn: boolean;
+  checkedOut: boolean;
+  checkInAt: string | null;
+  checkOutAt: string | null;
+  checkInMethod: string | null;
+  checkOutMethod: string | null;
+  message: string | null;
 }

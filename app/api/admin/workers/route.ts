@@ -1,27 +1,28 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { isAdminAuthenticated, unauthorized } from "@/lib/admin-auth";
+import { requireAdmin, isResponse } from "@/lib/session";
+import { getDb } from "@/lib/workers";
 import type { Worker } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  if (!isAdminAuthenticated(request)) return unauthorized();
+  const admin = await requireAdmin();
+  if (isResponse(admin)) return admin;
 
   try {
+    const db = getDb();
     const url = new URL(request.url);
     const q = url.searchParams.get("q")?.trim();
     const activeParam = url.searchParams.get("active");
 
-    const conditions: string[] = [];
     const parts: unknown[] = [];
     const sqlParts: string[] = [];
 
     if (q) {
-      parts.push(`%${q}%`, `%${q}%`);
+      parts.push(`%${q}%`, `%${q}%`, `%${q}%`);
       sqlParts.push(
-        `(employee_code ILIKE $${parts.length - 1} OR name ILIKE $${parts.length})`,
+        `(COALESCE(employee_code, '') ILIKE $${parts.length - 2} OR name ILIKE $${parts.length - 1} OR email ILIKE $${parts.length})`,
       );
     }
     if (activeParam === "true" || activeParam === "false") {
@@ -32,19 +33,18 @@ export async function GET(request: Request) {
     let rows: Worker[];
     if (!sqlParts.length) {
       rows = await db.sql<Worker>`
-        SELECT id, employee_code, name, active, created_at, updated_at
+        SELECT id, employee_code, name, email, active, created_at, updated_at
         FROM workers
-        ORDER BY employee_code ASC
+        ORDER BY name ASC
       `;
     } else {
-      const sql = `SELECT id, employee_code, name, active, created_at, updated_at
+      const sql = `SELECT id, employee_code, name, email, active, created_at, updated_at
         FROM workers
         WHERE ${sqlParts.join(" AND ")}
-        ORDER BY employee_code ASC`;
+        ORDER BY name ASC`;
       rows = (await db.sql.unsafe(sql, parts)) as unknown as Worker[];
     }
 
-    void conditions;
     return NextResponse.json({ workers: rows });
   } catch (err) {
     console.error("admin workers list error", err);
@@ -56,31 +56,31 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isAdminAuthenticated(request)) return unauthorized();
+  const admin = await requireAdmin();
+  if (isResponse(admin)) return admin;
 
   try {
+    const db = getDb();
     const body = (await request.json()) as {
-      employeeCode?: unknown;
       name?: unknown;
+      email?: unknown;
     };
 
-    const employeeCode =
-      typeof body.employeeCode === "string" ? body.employeeCode.trim().toUpperCase() : "";
     const name = typeof body.name === "string" ? body.name.trim() : "";
+    const email =
+      typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
 
-    if (!employeeCode || !name) {
+    if (!name && !email) {
       return NextResponse.json(
-        { error: "INVALID_INPUT", message: "employeeCode and name are required" },
+        { error: "INVALID_INPUT", message: "name or email is required" },
         { status: 400 },
       );
     }
 
     const inserted = await db.sql<Worker>`
-      INSERT INTO workers (employee_code, name, active)
-      VALUES (${employeeCode}, ${name}, TRUE)
-      ON CONFLICT (employee_code) DO UPDATE
-        SET name = EXCLUDED.name, updated_at = NOW()
-      RETURNING id, employee_code, name, active, created_at, updated_at
+      INSERT INTO workers (name, email, active)
+      VALUES (${name || email.split("@")[0] || "Worker"}, ${email || null}, TRUE)
+      RETURNING id, employee_code, name, email, active, created_at, updated_at
     `;
 
     return NextResponse.json({ worker: inserted[0] }, { status: 201 });

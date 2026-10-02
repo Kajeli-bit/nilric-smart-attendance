@@ -1,77 +1,67 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { officeDayKey } from "@/lib/attendance-day";
+import { requireWorker, isResponse } from "@/lib/session";
+import { getOfficeConfig, goodbyeMessage } from "@/lib/env";
 import { getClientIp, parseGps, verifyAttendance } from "@/lib/verification";
-import type {
-  ApiErrorBody,
-  CheckOutSuccessBody,
-  VerificationMethod,
-} from "@/lib/types";
+import {
+  getDb,
+  findWorkerByEmail,
+  getTodayAttendance,
+} from "@/lib/workers";
+import type { AttendanceActionBody, VerificationMethod } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function errorJson(status: number, error: string, message: string) {
-  return NextResponse.json({ error, message } satisfies ApiErrorBody, { status });
-}
-
-function normalizeCode(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
-  const code = raw.trim().toUpperCase();
-  return code || null;
+  return NextResponse.json({ error, message }, { status });
 }
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as {
-      employeeCode?: unknown;
+    const user = await requireWorker();
+    if (isResponse(user)) return user;
+
+    const body = (await request.json().catch(() => ({}))) as {
       gps?: unknown;
     };
 
-    const employeeCode = normalizeCode(body.employeeCode);
-    if (!employeeCode) {
-      return errorJson(400, "INVALID_INPUT", "Employee code is required");
+    const gps = parseGps(body.gps);
+    if (!gps) {
+      return errorJson(
+        400,
+        "LOCATION_REQUIRED",
+        "Location access is required to check out. Allow location and try again.",
+      );
     }
 
-    const gps = parseGps(body.gps);
     const clientIp = getClientIp(request.headers);
     const verification = verifyAttendance(clientIp, gps);
-
     if (!verification.ok) {
       return errorJson(422, "NOT_VERIFIED", verification.reason);
     }
 
     const method: VerificationMethod = verification.method;
-    const attendanceDay = officeDayKey();
+    const office = getOfficeConfig();
+    const db = getDb();
     const occurredAt = new Date().toISOString();
 
-    const workers = await db.sql<{
-      id: string;
-      employee_code: string;
-      name: string;
-      active: boolean;
-    }>`SELECT id, employee_code, name, active FROM workers WHERE employee_code = ${employeeCode}`;
-
-    const worker = workers[0];
+    const worker = await findWorkerByEmail(user.email);
     if (!worker) {
-      return errorJson(404, "WORKER_NOT_FOUND", "Worker not found. Check in first.");
+      return errorJson(
+        404,
+        "WORKER_NOT_FOUND",
+        "No worker record found. Please check in first.",
+      );
     }
     if (!worker.active) {
       return errorJson(409, "INACTIVE_WORKER", "Worker is deactivated");
     }
 
-    const dayRows = await db.sql<{
-      id: string;
-      check_in_at: string;
-      check_out_at: string | null;
-    }>`
-      SELECT id, check_in_at, check_out_at
-      FROM attendance_days
-      WHERE worker_id = ${worker.id} AND attendance_day = ${attendanceDay}::date
-    `;
+    const { day: attendanceDay, row: day } = await getTodayAttendance(
+      worker.id,
+    );
 
-    const day = dayRows[0];
-    if (!day) {
+    if (!day?.check_in_at) {
       return errorJson(
         409,
         "NOT_CHECKED_IN",
@@ -79,7 +69,11 @@ export async function POST(request: Request) {
       );
     }
     if (day.check_out_at) {
-      return errorJson(409, "ALREADY_CHECKED_OUT", "You have already checked out today.");
+      return errorJson(
+        409,
+        "ALREADY_CHECKED_OUT",
+        "You have already checked out today.",
+      );
     }
 
     const updated = await db.sql<{ check_out_at: string }>`
@@ -96,7 +90,11 @@ export async function POST(request: Request) {
     `;
 
     if (!updated[0]) {
-      return errorJson(409, "ALREADY_CHECKED_OUT", "You have already checked out today.");
+      return errorJson(
+        409,
+        "ALREADY_CHECKED_OUT",
+        "You have already checked out today.",
+      );
     }
 
     await db.sql`
@@ -123,21 +121,28 @@ export async function POST(request: Request) {
       )
     `;
 
-    const responseBody: CheckOutSuccessBody = {
+    const responseBody: AttendanceActionBody = {
       ok: true,
       action: "check_out",
       worker: {
         id: worker.id,
-        employeeCode: worker.employee_code,
         name: worker.name,
+        email: worker.email,
+      },
+      office: {
+        name: office.name,
+        city: office.city,
       },
       attendance: {
         attendanceDay,
-        checkOutAt: occurredAt,
+        at: occurredAt,
         method,
         distanceMeters:
-          verification.distanceM === null ? null : Math.round(verification.distanceM),
+          verification.distanceM === null
+            ? null
+            : Math.round(verification.distanceM),
       },
+      message: goodbyeMessage(worker.name),
     };
 
     return NextResponse.json(responseBody, { status: 200 });

@@ -1,42 +1,142 @@
 # Nilric Smart Attendance
 
-Location-based worker attendance PWA built with **Next.js**, deployed on **Netlify**, and stored in **Netlify Database (Postgres)**.
+Location-based worker attendance **PWA** with **Google SSO**, deployed on **Netlify**, stored in **Netlify Database (Postgres)**.
 
-Workers check in/out from their phones. Verification is dual-layer:
-
-1. **Office Wi-Fi IP** — if the request comes from your office's static public IP, check-in succeeds immediately (no GPS required).
-2. **GPS geofence** — if not on office Wi-Fi, coordinates are checked against the office centroid within a configurable radius (default 100 m).
+Workers sign in with Google (prevents credential sharing). Location access is **mandatory** for check-in and check-out. The app welcomes workers to the office on check-in and wishes them a safe journey on check-out.
 
 ## Features
 
-- Installable PWA (Serwist) with iOS "Add to Home Screen" hint
-- Employee code + name identity (auto-create on first successful check-in)
-- Check-in **and** check-out with double-submit protection
-- Admin dashboard: workers CRUD, daily reports, CSV export
-- Office config via environment variables
-- Online-only check-in (no offline queue)
+- **Google SSO** for workers and admins (Auth.js / NextAuth)
+- **Admin access control** via `ADMIN_EMAILS` allowlist
+- **Mandatory GPS** before check-in/out (app blocks if location is denied)
+- Dual-layer verification: GPS geofence + office Wi-Fi IP backup
+- Location-aware **welcome / goodbye** messages using `OFFICE_NAME` + `OFFICE_CITY`
+- Installable PWA (Serwist) with install prompt
+- Admin dashboard: workers, reports, CSV export
 
 ## Stack
 
 | Piece | Tech |
 |-------|------|
 | Framework | Next.js 16 (App Router) |
-| Language | TypeScript |
-| Styling | Tailwind CSS |
+| Auth | NextAuth v5 (`next-auth`) + Google |
 | Database | Netlify Database (`@netlify/database`) |
 | PWA | Serwist (`@serwist/turbopack`) |
-| Hosting | Netlify (OpenNext adapter, automatic) |
+| Hosting | Netlify (OpenNext adapter) |
+
+## Google OAuth setup (complete checklist)
+
+Your pasted steps (Credentials → Create Client → **Web application**) are the right core flow. You also need consent screen, origins, and redirect URIs.
+
+### 1. Project + OAuth consent screen
+1. Open [Google Cloud Console](https://console.cloud.google.com/) and select/create a project.
+2. **APIs & Services → OAuth consent screen**
+3. User type: **External**
+4. App name: `Nilric Smart Attendance` (or similar) + support/dev emails
+5. Scopes: `openid`, `email`, `profile` (Auth.js defaults; no extra Google APIs required)
+6. If status is **Testing**, add every worker/admin Google email under **Test users**
+
+### 2. Create OAuth client
+1. **APIs & Services → Credentials → Create Credentials → OAuth client ID**
+2. Application type: **Web application**
+3. Name: e.g. `nilric-web`
+4. **Authorized JavaScript origins**
+
+   | Environment | Origin |
+   |-------------|--------|
+   | Netlify production | `https://YOUR-SITE.netlify.app` |
+   | Deploy previews | `https://deploy-preview-N--YOUR-SITE.netlify.app` |
+   | Local Netlify | `http://localhost:8888` |
+
+5. **Authorized redirect URIs** (must match NextAuth exactly)
+
+   | Environment | Redirect URI |
+   |-------------|--------------|
+   | Netlify production | `https://YOUR-SITE.netlify.app/api/auth/callback/google` |
+   | Local Netlify | `http://localhost:8888/api/auth/callback/google` |
+   | Custom domain | `https://your-domain.com/api/auth/callback/google` |
+
+6. Save and copy **Client ID** + **Client Secret**
+
+### 3. App env vars
+Set in Netlify (and `.env` locally), then **redeploy**:
+
+```
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+AUTH_SECRET=$(openssl rand -base64 32)
+ADMIN_EMAILS=you@gmail.com
+```
+
+Callback path used by this app: `/api/auth/callback/google`
+
+### 4. Common errors
+
+| Symptom | Cause |
+|---------|--------|
+| `redirect_uri_mismatch` | Redirect URI missing/wrong path |
+| App blocked / not verified | User not on **Test users** while consent is Testing |
+| `invalid_client` | Bad Client ID/Secret or env not applied after redeploy |
+| Admin 403 | Email not in `ADMIN_EMAILS` |
+
+No application code changes are required — auth is already wired in `lib/auth.ts` and `app/api/auth/[...nextauth]/route.ts`.
+
+
+## Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `AUTH_SECRET` | `openssl rand -base64 32` |
+| `ADMIN_EMAILS` | Comma-separated Google emails allowed into `/admin` |
+| `OFFICE_NAME` | e.g. `Nilric HQ` |
+| `OFFICE_CITY` | e.g. `Dar es Salaam` |
+| `OFFICE_PUBLIC_IP` | Static office egress IP (backup verification) |
+| `OFFICE_LAT` / `OFFICE_LNG` | Office GPS centroid |
+| `OFFICE_RADIUS_METERS` | Geofence radius (default `100`) |
+| `OFFICE_TIMEZONE` | IANA TZ for attendance day (default `Africa/Dar_es_Salaam`) |
+
+See `.env.example`.
+
+## Worker flow
+
+1. Open `/check-in` → **Sign in with Google**
+2. Tap **Check In** / **Check Out**
+3. App **requires location permission** — if denied, nothing is submitted
+4. On success:
+   - Check-in: `Welcome to Nilric HQ, Dar es Salaam, Amina!`
+   - Check-out: `Goodbye Amina — have a safe journey!`
+
+Server still verifies:
+- GPS inside office radius **or**
+- Client IP matches `OFFICE_PUBLIC_IP` (backup if GPS is weak on Wi-Fi)
+
+## Admin flow
+
+1. Sign in with a Google account listed in `ADMIN_EMAILS`
+2. `/admin` — today’s overview
+3. `/admin/workers` — list, rename, activate/deactivate
+4. `/admin/reports` — filters + CSV
+
+Workers are auto-created on first successful Google sign-in / check-in.
+
+## Deploy (GitHub → Netlify)
+
+1. Push to GitHub.
+2. Netlify → **Add new site → Import from Git**.
+3. Enable **Netlify Database**.
+4. Set all env vars above.
+5. Add the production Google redirect URI.
+6. Deploy. Confirm migration `0002_google_sso_workers.sql` applies.
 
 ## Local development
 
-Requires **Node ≥ 22.12**.
-
 ```bash
 npm install
-cp .env.example .env
-# Edit .env with real office IP/coords and ADMIN_PASSWORD
-npx netlify init   # or link an existing site
-npx netlify dev    # starts app + local Netlify Database
+cp .env.example .env   # fill Google + office values
+npx netlify init
+npx netlify dev        # http://localhost:8888
 ```
 
 Apply migrations locally:
@@ -45,127 +145,33 @@ Apply migrations locally:
 npx netlify database migrations apply
 ```
 
-If you run `next dev` without Netlify Database connection, API routes that hit Postgres will fail. Prefer `netlify dev` for full-stack testing.
+## API summary
 
-### Manual migration apply (local)
+| Endpoint | Auth | Purpose |
+|----------|------|---------|
+| `GET/POST /api/auth/*` | — | NextAuth (Google) |
+| `GET /api/auth/session` | session | Who am I + isAdmin |
+| `GET /api/attendance/today` | worker | Today’s check-in/out status |
+| `POST /api/check-in` | worker | GPS required |
+| `POST /api/check-out` | worker | GPS required |
+| `GET /api/admin/workers` | admin | List workers |
+| `GET/PATCH /api/admin/workers/:id` | admin | Detail / update |
+| `POST /api/admin/workers/:id/activate\|deactivate` | admin | Toggle active |
+| `GET /api/admin/attendance` | admin | Report JSON |
+| `GET /api/admin/attendance.csv` | admin | CSV export |
 
-Migrations live in `netlify/database/migrations/` and are applied automatically on Netlify deploys and deploy previews.
+## Security notes
 
-## Environment variables
-
-Set these in **Netlify → Site settings → Environment variables** (and copy to `.env` locally):
-
-| Variable | Description |
-|----------|-------------|
-| `OFFICE_PUBLIC_IP` | Office static public egress IP (Layer 1) |
-| `OFFICE_LAT` | Office GPS latitude |
-| `OFFICE_LNG` | Office GPS longitude |
-| `OFFICE_RADIUS_METERS` | GPS geofence radius (default `100`) |
-| `OFFICE_TIMEZONE` | IANA timezone for attendance day (default `Africa/Dar_es_Salaam`) |
-| `ADMIN_PASSWORD` | Admin dashboard password |
-
-**Important:** `OFFICE_PUBLIC_IP` must be a **static** IP. Find it by connecting a device to office Wi-Fi and searching "What is my IP". Dynamic IPs break Layer 1.
-
-## Deploy to Netlify from GitHub
-
-1. Push this repo to GitHub.
-2. In Netlify: **Add new site → Import from Git** → select the repo.
-3. Enable **Netlify Database** (Data & Storage → Database) for the site.
-4. Set the environment variables listed above.
-5. Deploy. Confirm migrations appear in the deploy logs.
-
-`netlify.toml` pins Node 22. Do **not** manually pin `@netlify/plugin-nextjs` — Netlify’s Next.js adapter is automatic.
-
-## Routes
-
-| Route | Purpose |
-|-------|---------|
-| `/` | Landing |
-| `/check-in` | Worker check-in / check-out UI |
-| `/admin/login` | Admin password login |
-| `/admin` | Today’s overview |
-| `/admin/workers` | Worker CRUD |
-| `/admin/reports` | Attendance reports + CSV |
-
-### API
-
-| Endpoint | Description |
-|----------|-------------|
-| `POST /api/check-in` | Verify + record check-in |
-| `POST /api/check-out` | Verify + record check-out |
-| `POST /api/admin/login` | Set admin cookie |
-| `GET/POST /api/admin/workers` | List / create workers |
-| `GET/PATCH /api/admin/workers/:id` | Read / update worker |
-| `POST /api/admin/workers/:id/activate` | Reactivate |
-| `POST /api/admin/workers/:id/deactivate` | Deactivate |
-| `GET /api/admin/attendance` | Report JSON |
-| `GET /api/admin/attendance.csv` | CSV export |
-
-## Verification algorithm
-
-```
-Layer 1: client IP (x-nf-client-connection-ip) === OFFICE_PUBLIC_IP
-  → success method=office_ip (GPS not required)
-
-Layer 2: haversine(gps, office) <= OFFICE_RADIUS_METERS
-  → success method=gps
-
-else → 422 NOT_VERIFIED
-```
-
-Attendance day uniqueness uses `OFFICE_TIMEZONE` (not UTC). Timestamps are stored in UTC.
-
-## Testing notes
-
-### Local Layer 1
-
-```bash
-# In .env
-OFFICE_PUBLIC_IP=127.0.0.1
-OFFICE_LAT=-6.7924
-OFFICE_LNG=39.2086
-```
-
-```bash
-curl -s -X POST localhost:8888/api/check-in \
-  -H 'Content-Type: application/json' \
-  -H 'x-nf-client-connection-ip: 127.0.0.1' \
-  -d '{"employeeCode":"NIL-001","name":"Test User"}'
-```
-
-### Local Layer 2
-
-Omit the IP header and send GPS near/far:
-
-```bash
-curl -s -X POST localhost:8888/api/check-in \
-  -H 'Content-Type: application/json' \
-  -d '{"employeeCode":"NIL-002","name":"Near Office","gps":{"lat":-6.7925,"lng":39.2087}}'
-```
-
-### Deployed checks
-
-- Office Wi-Fi: deny geolocation → still succeeds via IP layer.
-- Cellular outside radius: expect `422 NOT_VERIFIED`.
-- Install PWA on Android; iOS Share → Add to Home Screen.
-- Toggle airplane mode: submit should be blocked as offline.
-
-## Security notes (v1)
-
-- Admin auth is a single shared password + httpOnly cookie. Rotate via `ADMIN_PASSWORD`.
-- GPS coordinates are client-supplied and can be spoofed; the IP layer is stronger when the office IP is static.
-- CSV export sanitizes spreadsheet formula characters.
-- Failed verification does **not** auto-create workers.
-
-## Billing note
-
-Netlify Database is credit-based. Database **storage** was free until July 1, 2026 — check current Netlify pricing before production scale.
+- Identity = Google account email (no shared password check-ins)
+- GPS is mandatory on the client; server still dual-verifies
+- GPS can be spoofed — IP backup + method/distance columns help audits
+- Admin is allowlist-only via Google email
+- Failed verification does not write attendance
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | `netlify dev` (full local stack) |
-| `npm run dev:next` | Plain `next dev` (DB routes need Netlify env) |
-| `npm run build` | Production Next.js build (Serwist SW generated) |
+| `npm run dev` | `netlify dev` (app + local DB) |
+| `npm run build` | Production build |
 | `npm run lint` | ESLint |

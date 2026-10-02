@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { SerwistProvider } from "@serwist/turbopack/react";
+import { AppProviders } from "@/components/AppProviders";
 import "./globals.css";
 
 const APP_NAME = "Nilric Smart Attendance";
 const APP_DEFAULT_TITLE = "Nilric Smart Attendance";
 const APP_TITLE_TEMPLATE = "%s - Nilric";
-const APP_DESCRIPTION = "Location-based worker check-in and check-out";
+const APP_DESCRIPTION = "Google SSO location-based worker attendance";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
@@ -46,9 +46,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
-        <SerwistProvider swUrl="/serwist/sw.js">
-          <div className="mx-auto w-full max-w-5xl px-4 py-6">{children}</div>
-        </SerwistProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

@@ -19,8 +19,8 @@ export function AttendanceReportTable() {
       const res = await fetch(`/api/admin/attendance?${params.toString()}`, {
         credentials: "include",
       });
-      if (res.status === 401) {
-        setError("Not logged in");
+      if (res.status === 401 || res.status === 403) {
+        setError("Admin Google sign-in required");
         setLoading(false);
         return;
       }
@@ -43,8 +43,8 @@ export function AttendanceReportTable() {
         credentials: "include",
       });
       if (cancelled) return;
-      if (res.status === 401) {
-        setError("Not logged in");
+      if (res.status === 401 || res.status === 403) {
+        setError("Admin Google sign-in required");
         setLoading(false);
         return;
       }
@@ -111,11 +111,11 @@ export function AttendanceReportTable() {
         <p className="text-slate-500">Loading…</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-200">
-          <table className="w-full min-w-[800px] text-left text-sm">
+          <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
-                <th className="px-3 py-2">Code</th>
                 <th className="px-3 py-2">Name</th>
+                <th className="px-3 py-2">Email</th>
                 <th className="px-3 py-2">Day</th>
                 <th className="px-3 py-2">In</th>
                 <th className="px-3 py-2">Out</th>
@@ -132,8 +132,8 @@ export function AttendanceReportTable() {
                   key={`${r.workerId}-${r.attendanceDay}-${idx}`}
                   className="border-t border-slate-100"
                 >
-                  <td className="px-3 py-2 font-mono">{r.employeeCode}</td>
                   <td className="px-3 py-2">{r.name}</td>
+                  <td className="px-3 py-2 text-slate-600">{r.email}</td>
                   <td className="px-3 py-2">{r.attendanceDay}</td>
                   <td className="px-3 py-2">{formatTime(r.checkInAt)}</td>
                   <td className="px-3 py-2">

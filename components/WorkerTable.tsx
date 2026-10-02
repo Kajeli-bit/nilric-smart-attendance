@@ -8,7 +8,6 @@ export function WorkerTable() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -19,8 +18,8 @@ export function WorkerTable() {
       const res = await fetch(`/api/admin/workers?${params.toString()}`, {
         credentials: "include",
       });
-      if (res.status === 401) {
-        setError("Not logged in");
+      if (res.status === 401 || res.status === 403) {
+        setError("Admin Google sign-in required");
         return;
       }
       const data = (await res.json()) as { workers?: Worker[] };
@@ -36,8 +35,8 @@ export function WorkerTable() {
     (async () => {
       const res = await fetch(`/api/admin/workers`, { credentials: "include" });
       if (cancelled) return;
-      if (res.status === 401) {
-        setError("Not logged in");
+      if (res.status === 401 || res.status === 403) {
+        setError("Admin Google sign-in required");
         setLoading(false);
         return;
       }
@@ -53,21 +52,20 @@ export function WorkerTable() {
 
   async function createWorker(e: React.FormEvent) {
     e.preventDefault();
-    if (!code.trim() || !name.trim()) return;
+    if (!name.trim()) return;
     setSaving(true);
     try {
       const res = await fetch("/api/admin/workers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ employeeCode: code, name }),
+        body: JSON.stringify({ name }),
       });
       if (!res.ok) {
         const data = (await res.json()) as { message?: string };
         setError(data.message || "Failed to create worker");
         return;
       }
-      setCode("");
       setName("");
       await load(q);
     } finally {
@@ -85,17 +83,16 @@ export function WorkerTable() {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+        Workers are created automatically when they first sign in with Google.
+        You can rename them or deactivate accounts here.
+      </div>
+
       <form onSubmit={createWorker} className="flex flex-wrap gap-2">
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="Employee code"
-          className="rounded-xl border border-slate-300 px-3 py-2"
-        />
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Full name"
+          placeholder="Display name (creates worker shell)"
           className="rounded-xl border border-slate-300 px-3 py-2"
         />
         <button
@@ -112,7 +109,7 @@ export function WorkerTable() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && load(q)}
-          placeholder="Search code or name…"
+          placeholder="Search name, email, or code…"
           className="flex-1 rounded-xl border border-slate-300 px-3 py-2"
         />
         <button
@@ -134,11 +131,12 @@ export function WorkerTable() {
         <p className="text-slate-500">Loading workers…</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-200">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
-                <th className="px-3 py-2">Code</th>
                 <th className="px-3 py-2">Name</th>
+                <th className="px-3 py-2">Email</th>
+                <th className="px-3 py-2">Code</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Actions</th>
               </tr>
@@ -146,8 +144,11 @@ export function WorkerTable() {
             <tbody>
               {workers.map((w) => (
                 <tr key={w.id} className="border-t border-slate-100">
-                  <td className="px-3 py-2 font-mono">{w.employee_code}</td>
                   <td className="px-3 py-2">{w.name}</td>
+                  <td className="px-3 py-2 text-slate-600">{w.email}</td>
+                  <td className="px-3 py-2 font-mono text-xs">
+                    {w.employee_code || "—"}
+                  </td>
                   <td className="px-3 py-2">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${
@@ -172,7 +173,7 @@ export function WorkerTable() {
               ))}
               {workers.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-3 py-4 text-slate-500">
+                  <td colSpan={5} className="px-3 py-4 text-slate-500">
                     No workers found
                   </td>
                 </tr>

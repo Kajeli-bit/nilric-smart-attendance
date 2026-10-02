@@ -21,8 +21,13 @@ export default function AdminOverviewPage() {
           fetch("/api/admin/workers", { credentials: "include" }),
           fetch("/api/admin/attendance", { credentials: "include" }),
         ]);
-        if (workersRes.status === 401 || attendanceRes.status === 401) {
-          setError("Not logged in");
+        if (
+          workersRes.status === 401 ||
+          workersRes.status === 403 ||
+          attendanceRes.status === 401 ||
+          attendanceRes.status === 403
+        ) {
+          setError("Admin Google sign-in required");
           return;
         }
         const workers = (await workersRes.json()) as {

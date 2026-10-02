@@ -2,8 +2,9 @@ import type { AttendanceReportRow } from "@/lib/types";
 
 interface RawAttendanceRow {
   worker_id: string;
-  employee_code: string;
+  employee_code: string | null;
   name: string;
+  email: string;
   attendance_day: string | Date;
   check_in_at: string;
   check_out_at: string | null;
@@ -17,7 +18,6 @@ export function formatDate(value: string | Date): string {
   if (value instanceof Date) {
     return value.toISOString().slice(0, 10);
   }
-  // DATE columns may come back as "YYYY-MM-DD" or ISO timestamp
   return String(value).slice(0, 10);
 }
 
@@ -33,6 +33,7 @@ export function buildReportRows(raw: RawAttendanceRow[]): AttendanceReportRow[] 
     workerId: r.worker_id,
     employeeCode: r.employee_code,
     name: r.name,
+    email: r.email,
     attendanceDay: formatDate(r.attendance_day),
     checkInAt: r.check_in_at,
     checkOutAt: r.check_out_at,

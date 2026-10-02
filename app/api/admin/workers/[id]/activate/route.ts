@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { isAdminAuthenticated, unauthorized } from "@/lib/admin-auth";
+import { requireAdmin, isResponse } from "@/lib/session";
+import { getDb } from "@/lib/workers";
 import type { Worker } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -10,13 +10,15 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!isAdminAuthenticated(request)) return unauthorized();
+  const admin = await requireAdmin();
+  if (isResponse(admin)) return admin;
   try {
+    const db = getDb();
     const { id } = await params;
     const rows = await db.sql<Worker>`
       UPDATE workers SET active = TRUE, updated_at = NOW()
       WHERE id = ${id}
-      RETURNING id, employee_code, name, active, created_at, updated_at
+      RETURNING id, employee_code, name, email, active, created_at, updated_at
     `;
     if (!rows[0]) {
       return NextResponse.json(
