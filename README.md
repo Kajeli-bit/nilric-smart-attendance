@@ -58,19 +58,44 @@ Your pasted steps (Credentials → Create Client → **Web application**) are th
 
 6. Save and copy **Client ID** + **Client Secret**
 
-### 3. App env vars
-Set in Netlify (and `.env` locally), then **redeploy**:
+### 3. App env vars (Netlify — then redeploy)
+
+Set in **Site settings → Environment variables** (available to Functions; Production + any previews you use):
 
 ```
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
 AUTH_SECRET=$(openssl rand -base64 32)
+AUTH_GOOGLE_ID=<Client ID>
+AUTH_GOOGLE_SECRET=<Client Secret>
+AUTH_TRUST_HOST=true
+AUTH_URL=https://YOUR-SITE.netlify.app
 ADMIN_EMAILS=you@gmail.com
 ```
 
+Aliases `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are also accepted.
+
 Callback path used by this app: `/api/auth/callback/google`
 
-### 4. Common errors
+### 4. Fix “Server error — problem with the server configuration”
+
+That message is Auth.js failing to start. Work through this list:
+
+| Check | What to do |
+|-------|------------|
+| `AUTH_SECRET` | Must be set and non-empty in Netlify Functions env |
+| Google ID/Secret | Set `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` (or GOOGLE_* aliases) |
+| `AUTH_TRUST_HOST` | Must be `true` on Netlify (reverse proxy) |
+| `AUTH_URL` | `https://YOUR-SITE.netlify.app` (exact production URL) |
+| Redeploy | Env changes require a **new deploy** |
+| Google test users | If consent is Testing, the signing-in account must be listed |
+| Redirect URI | Exact `https://SITE.netlify.app/api/auth/callback/google` |
+
+**Diagnostics (safe):** open  
+`https://YOUR-SITE.netlify.app/api/auth/debug`  
+You should see `readyForGoogleSso: true` and all required `has*` flags true. Secret values are never returned.
+
+**Netlify logs:** Functions logs after clicking *Sign in with Google* will show clearer errors (e.g. missing `AUTH_SECRET`) now that config fails fast with named errors.
+
+### 5. Common Google errors (after auth config is fixed)
 
 | Symptom | Cause |
 |---------|--------|
@@ -79,16 +104,19 @@ Callback path used by this app: `/api/auth/callback/google`
 | `invalid_client` | Bad Client ID/Secret or env not applied after redeploy |
 | Admin 403 | Email not in `ADMIN_EMAILS` |
 
-No application code changes are required — auth is already wired in `lib/auth.ts` and `app/api/auth/[...nextauth]/route.ts`.
+Auth is wired in `lib/auth.ts` + `app/api/auth/[...nextauth]/route.ts`.
+
 
 
 ## Environment variables
 
 | Variable | Description |
 |----------|-------------|
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-| `AUTH_SECRET` | `openssl rand -base64 32` |
+| `AUTH_SECRET` | **Required.** `openssl rand -base64 32` |
+| `AUTH_GOOGLE_ID` / `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `AUTH_GOOGLE_SECRET` / `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `AUTH_TRUST_HOST` | Set `true` on Netlify |
+| `AUTH_URL` | Production site URL, e.g. `https://YOUR-SITE.netlify.app` |
 | `ADMIN_EMAILS` | Comma-separated Google emails allowed into `/admin` |
 | `OFFICE_NAME` | e.g. `Nilric HQ` |
 | `OFFICE_CITY` | e.g. `Dar es Salaam` |
@@ -97,7 +125,7 @@ No application code changes are required — auth is already wired in `lib/auth.
 | `OFFICE_RADIUS_METERS` | Geofence radius (default `100`) |
 | `OFFICE_TIMEZONE` | IANA TZ for attendance day (default `Africa/Dar_es_Salaam`) |
 
-See `.env.example`.
+See `.env.example`. Diagnostics: `GET /api/auth/debug`.
 
 ## Worker flow
 
