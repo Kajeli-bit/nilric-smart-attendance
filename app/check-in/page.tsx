@@ -1,4 +1,4 @@
-import { CheckInForm } from "@/components/CheckInForm";
+import CheckInClient from "./CheckInClient";
 
 export const metadata = {
   title: "Check In",
@@ -13,7 +13,7 @@ export default function CheckInPage() {
           Check in or out at the office
         </p>
       </header>
-      <CheckInForm />
+      <CheckInClient />
     </main>
   );
 }

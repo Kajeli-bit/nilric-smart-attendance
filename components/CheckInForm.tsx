@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import type { GpsCoords } from "@/lib/types";
-import { IosInstallHint } from "@/components/IosInstallHint";
 
 type StatusKind = "idle" | "locating" | "success" | "error";
 
@@ -144,8 +143,6 @@ export function CheckInForm() {
 
   return (
     <div className="mx-auto w-full max-w-md space-y-4">
-      <IosInstallHint />
-
       {!online && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           You are offline. Check-in/out needs an internet connection.
