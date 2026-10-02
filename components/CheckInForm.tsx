@@ -79,8 +79,10 @@ export function CheckInForm() {
   const [today, setToday] = useState<TodayState | null>(null);
   const [status, setStatus] = useState<StatusState>({ kind: "idle", message: "" });
   const [busy, setBusy] = useState(false);
+  const [loadingToday, setLoadingToday] = useState(false);
 
   async function loadToday() {
+    setLoadingToday(true);
     try {
       const res = await fetch("/api/attendance/today", { credentials: "include" });
       if (!res.ok) {
@@ -116,6 +118,8 @@ export function CheckInForm() {
       }
     } catch {
       // ignore network blips on initial load
+    } finally {
+      setLoadingToday(false);
     }
   }
 
