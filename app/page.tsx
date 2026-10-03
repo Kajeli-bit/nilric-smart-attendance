@@ -1,11 +1,18 @@
-"use client";
-
-import { useSession } from "next-auth/react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { auth } from "@/lib/auth";
 import { GoogleSignInButton, UserBadge } from "@/components/AuthButtons";
 
-export default function HomePage() {
-  const { data, status } = useSession();
-  const signedIn = status === "authenticated" && !!data?.user?.email;
+export const metadata: Metadata = {
+  title: "Nilric Smart Attendance",
+};
+
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const session = await auth();
+  const email = session?.user?.email?.trim().toLowerCase() ?? null;
+  const signedIn = Boolean(email);
 
   return (
     <main className="flex min-h-[70vh] flex-col items-center justify-center gap-6 text-center">
@@ -25,12 +32,12 @@ export default function HomePage() {
         {signedIn ? (
           <>
             <UserBadge />
-            <a
+            <Link
               href="/check-in"
               className="block rounded-xl bg-teal-700 px-6 py-3 text-center font-semibold text-white hover:bg-teal-800"
             >
               Open Check-In
-            </a>
+            </Link>
           </>
         ) : (
           <GoogleSignInButton label="Sign in with Google" />

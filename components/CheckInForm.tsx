@@ -233,7 +233,7 @@ export function CheckInForm() {
             Use your Google account to check in or out. This prevents credential sharing.
           </p>
           <div className="mt-4">
-            <GoogleSignInButton />
+            <GoogleSignInButton label="Sign in with Google" />
           </div>
         </div>
       </div>

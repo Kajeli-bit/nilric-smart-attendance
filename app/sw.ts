@@ -27,6 +27,18 @@ const serwist = new Serwist({
       matcher: /\/admin/,
       handler: new NetworkOnly(),
     },
+    // Auth-sensitive HTML must never be served from cache.
+    // Installed PWAs otherwise open a stale /check-in shell and skip Google sign-in.
+    {
+      matcher({ url }: { url: URL }) {
+        return (
+          url.pathname === "/" ||
+          url.pathname === "/check-in" ||
+          url.pathname.startsWith("/api/auth")
+        );
+      },
+      handler: new NetworkOnly(),
+    },
     ...defaultCache,
   ],
   fallbacks: {

@@ -6,7 +6,11 @@ export function GoogleSignInButton({ label = "Continue with Google" }: { label?:
   return (
     <button
       type="button"
-      onClick={() => signIn("google", { callbackUrl: "/check-in" })}
+      onClick={() => {
+        // Full-page OAuth redirect works more reliably inside an installed PWA
+        // than a popup / partial navigation.
+        void signIn("google", { callbackUrl: "/check-in", redirect: true });
+      }}
       className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
     >
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
