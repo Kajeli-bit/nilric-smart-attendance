@@ -6,16 +6,17 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "dev": "netlify dev",
+    "dev": "next dev",
     "dev:next": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
-    "@netlify/database": "^2.0.1",
     "next": "^16.3.8",
     "next-auth": "^5.0.0-beta.32",
+    "postgres": "^3.4.9",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
@@ -26,9 +27,9 @@
     "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
-    "netlify-cli": "^27.10.2",
     "serwist": "^9.5.12",
     "tailwindcss": "^4",
     "typescript": "^5"

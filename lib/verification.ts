@@ -3,6 +3,14 @@ import { getOfficeConfig, type OfficeConfig } from "@/lib/env";
 import type { GpsCoords, VerificationResult } from "@/lib/types";
 
 export function getClientIp(headers: Headers): string | null {
+  // Vercel
+  const vercel = headers.get("x-real-ip") || headers.get("x-vercel-forwarded-for");
+  if (vercel?.trim()) {
+    const first = vercel.split(",")[0]?.trim();
+    if (first) return first;
+  }
+
+  // Netlify (legacy) then generic reverse proxy
   const nf = headers.get("x-nf-client-connection-ip");
   if (nf?.trim()) return nf.trim();
 

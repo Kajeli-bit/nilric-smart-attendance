@@ -1,6 +1,6 @@
 # Nilric Smart Attendance
 
-Location-based worker attendance **PWA** with **Google SSO**, deployed on **Netlify**, stored in **Netlify Database (Postgres)**.
+Location-based worker attendance **PWA** with **Google SSO**, deployed on **Vercel**, stored in **Postgres** (Neon via Vercel Marketplace).
 
 Workers sign in with Google (prevents credential sharing). Location access is **mandatory** for check-in and check-out. The app welcomes workers to the office on check-in and wishes them a safe journey on check-out.
 
@@ -20,97 +20,90 @@ Workers sign in with Google (prevents credential sharing). Location access is **
 |-------|------|
 | Framework | Next.js 16 (App Router) |
 | Auth | NextAuth v5 (`next-auth`) + Google |
-| Database | Netlify Database (`@netlify/database`) |
+| Database | Postgres via **Vercel Marketplace → Neon** (`postgres` / Postgres.js) |
 | PWA | Serwist (`@serwist/turbopack`) |
-| Hosting | Netlify (OpenNext adapter) |
+| Hosting | **Vercel** |
 
-## Google OAuth setup (complete checklist)
+> **Note:** Legacy “Vercel Postgres” / Netlify Database are retired. New projects use **Neon Postgres** installed from the Vercel Marketplace. The app reads `POSTGRES_URL` (also accepts `DATABASE_URL`).
 
-Your pasted steps (Credentials → Create Client → **Web application**) are the right core flow. You also need consent screen, origins, and redirect URIs.
+## Google OAuth setup
 
 ### 1. Project + OAuth consent screen
-1. Open [Google Cloud Console](https://console.cloud.google.com/) and select/create a project.
+1. [Google Cloud Console](https://console.cloud.google.com/) → create/select project
 2. **APIs & Services → OAuth consent screen**
 3. User type: **External**
-4. App name: `Nilric Smart Attendance` (or similar) + support/dev emails
-5. Scopes: `openid`, `email`, `profile` (Auth.js defaults; no extra Google APIs required)
+4. App name: `Nilric Smart Attendance` + support/dev emails
+5. Scopes: `openid`, `email`, `profile`
 6. If status is **Testing**, add every worker/admin Google email under **Test users**
 
 ### 2. Create OAuth client
 1. **APIs & Services → Credentials → Create Credentials → OAuth client ID**
 2. Application type: **Web application**
-3. Name: e.g. `nilric-web`
-4. **Authorized JavaScript origins**
+3. **Authorized JavaScript origins**
 
    | Environment | Origin |
    |-------------|--------|
-   | Netlify production | `https://YOUR-SITE.netlify.app` |
-   | Deploy previews | `https://deploy-preview-N--YOUR-SITE.netlify.app` |
-   | Local Netlify | `http://localhost:8888` |
+   | Vercel production | `https://YOUR-PROJECT.vercel.app` |
+   | Vercel preview | `https://YOUR-PROJECT-*.vercel.app` |
+   | Local | `http://localhost:3000` |
 
-5. **Authorized redirect URIs** (must match NextAuth exactly)
+4. **Authorized redirect URIs**
 
    | Environment | Redirect URI |
    |-------------|--------------|
-   | Netlify production | `https://YOUR-SITE.netlify.app/api/auth/callback/google` |
-   | Local Netlify | `http://localhost:8888/api/auth/callback/google` |
+   | Vercel production | `https://YOUR-PROJECT.vercel.app/api/auth/callback/google` |
+   | Local | `http://localhost:3000/api/auth/callback/google` |
    | Custom domain | `https://your-domain.com/api/auth/callback/google` |
 
-6. Save and copy **Client ID** + **Client Secret**
+5. Save **Client ID** + **Client Secret**
 
-### 3. App env vars (Netlify — then redeploy)
+### 3. App env vars (Vercel — then redeploy)
 
-Set in **Site settings → Environment variables** (available to Functions; Production + any previews you use):
+Project → **Settings → Environment variables** (Production + Preview as needed):
 
 ```
 AUTH_SECRET=$(openssl rand -base64 32)
 AUTH_GOOGLE_ID=<Client ID>
 AUTH_GOOGLE_SECRET=<Client Secret>
 AUTH_TRUST_HOST=true
-AUTH_URL=https://YOUR-SITE.netlify.app
+AUTH_URL=https://YOUR-PROJECT.vercel.app
 ADMIN_EMAILS=you@gmail.com
+# Postgres: usually injected automatically by Neon Marketplace integration
+# POSTGRES_URL=postgres://...   (if not auto-injected)
 ```
 
-Aliases `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are also accepted.
+Google OAuth redirect path: `/api/auth/callback/google`
 
-Callback path used by this app: `/api/auth/callback/google`
-
-### 4. Fix “Server error — problem with the server configuration”
-
-That message is Auth.js failing to start. Work through this list:
+### 4. Fix Auth.js “Server configuration” errors
 
 | Check | What to do |
 |-------|------------|
-| `AUTH_SECRET` | Must be set and non-empty in Netlify Functions env |
-| Google ID/Secret | Set `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` (or GOOGLE_* aliases) |
-| `AUTH_TRUST_HOST` | Must be `true` on Netlify (reverse proxy) |
-| `AUTH_URL` | `https://YOUR-SITE.netlify.app` (exact production URL) |
-| Redeploy | Env changes require a **new deploy** |
-| Google test users | If consent is Testing, the signing-in account must be listed |
-| Redirect URI | Exact `https://SITE.netlify.app/api/auth/callback/google` |
+| `AUTH_SECRET` | Set and non-empty in Vercel env |
+| Google ID/Secret | `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` (or `GOOGLE_*`) |
+| `AUTH_TRUST_HOST` | `true` |
+| `AUTH_URL` | Exact production URL, no trailing slash |
+| Redeploy | Env changes need a **new deployment** |
+| Google test users | Consent Testing → account must be listed |
+| Redirect URI | Exact `https://PROJECT.vercel.app/api/auth/callback/google` |
 
-**Diagnostics (safe):** open  
-`https://YOUR-SITE.netlify.app/api/auth/debug`  
-You should see `readyForGoogleSso: true` and all required `has*` flags true. Secret values are never returned.
+**Diagnostics (safe):**  
+`https://YOUR-PROJECT.vercel.app/api/auth/debug`  
+Expect `readyForGoogleSso: true`.
 
 **Attendance / database diagnostics:**  
-`https://YOUR-SITE.netlify.app/api/attendance/diag`  
-Shows whether Netlify Database is reachable, the `workers.email` column exists, and `attendance_days` is present. Fix any `false` / error before retrying check-in.
+`https://YOUR-PROJECT.vercel.app/api/attendance/diag`  
+Expect `hasPostgresUrl: true`, `ping: true`, `workersEmailColumn: true`, `attendanceDaysTable: true`, `readyForCheckIn: true`.
 
-**Netlify logs:** Functions logs after clicking *Sign in with Google* will show clearer errors (e.g. missing `AUTH_SECRET`) now that config fails fast with named errors.
+**Vercel logs:** Function logs after Google sign-in show named Auth.js/DB errors.
 
-### 5. Common Google errors (after auth config is fixed)
+### 5. Common Google errors
 
 | Symptom | Cause |
 |---------|--------|
-| `redirect_uri_mismatch` | Redirect URI missing/wrong path |
-| App blocked / not verified | User not on **Test users** while consent is Testing |
-| `invalid_client` | Bad Client ID/Secret or env not applied after redeploy |
+| `redirect_uri_mismatch` | Redirect URI missing/wrong |
+| App blocked / not verified | User not on **Test users** while Testing |
+| `invalid_client` | Bad Client ID/Secret or env not applied |
 | Admin 403 | Email not in `ADMIN_EMAILS` |
-
-Auth is wired in `lib/auth.ts` + `app/api/auth/[...nextauth]/route.ts`.
-
-
 
 ## Environment variables
 
@@ -119,63 +112,65 @@ Auth is wired in `lib/auth.ts` + `app/api/auth/[...nextauth]/route.ts`.
 | `AUTH_SECRET` | **Required.** `openssl rand -base64 32` |
 | `AUTH_GOOGLE_ID` / `GOOGLE_CLIENT_ID` | Google OAuth client ID |
 | `AUTH_GOOGLE_SECRET` / `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-| `AUTH_TRUST_HOST` | Set `true` on Netlify |
-| `AUTH_URL` | Production site URL, e.g. `https://YOUR-SITE.netlify.app` |
-| `ADMIN_EMAILS` | Comma-separated Google emails allowed into `/admin` |
-| `OFFICE_NAME` | e.g. `Nilric HQ` |
-| `OFFICE_CITY` | e.g. `Dar es Salaam` |
+| `AUTH_TRUST_HOST` | `true` on Vercel |
+| `AUTH_URL` | e.g. `https://YOUR-PROJECT.vercel.app` |
+| `POSTGRES_URL` | **Required.** Neon/Vercel Postgres connection string |
+| `DATABASE_URL` | Alias accepted by the app/migrate script |
+| `ADMIN_EMAILS` | Comma-separated Google emails for `/admin` |
+| `OFFICE_NAME` / `OFFICE_CITY` | Welcome/goodbye messages |
 | `OFFICE_PUBLIC_IP` | Static office egress IP (backup verification) |
 | `OFFICE_LAT` / `OFFICE_LNG` | Office GPS centroid |
 | `OFFICE_RADIUS_METERS` | Geofence radius (default `100`) |
-| `OFFICE_TIMEZONE` | IANA TZ for attendance day (default `Africa/Dar_es_Salaam`) |
+| `OFFICE_TIMEZONE` | IANA TZ (default `Africa/Dar_es_Salaam`) |
 
-See `.env.example`. Diagnostics: `GET /api/auth/debug`.
+See `.env.example`. Never commit real secrets.
 
 ## Worker flow
 
 1. Open `/check-in` → **Sign in with Google**
 2. Tap **Check In** / **Check Out**
-3. App **requires location permission** — if denied, nothing is submitted
-4. On success:
-   - Check-in: `Welcome to Nilric HQ, Dar es Salaam, Amina!`
-   - Check-out: `Goodbye Amina — have a safe journey!`
+3. App **requires location permission**
+4. On success: welcome/goodbye using office name/city
 
-Server still verifies:
-- GPS inside office radius **or**
-- Client IP matches `OFFICE_PUBLIC_IP` (backup if GPS is weak on Wi-Fi)
+Server verifies GPS inside radius **or** client IP matches `OFFICE_PUBLIC_IP`.
 
 ## Admin flow
 
 1. Sign in with a Google account listed in `ADMIN_EMAILS`
-2. `/admin` — today’s overview
-3. `/admin/workers` — list, rename, activate/deactivate
-4. `/admin/reports` — filters + CSV
+2. `/admin` overview, workers, reports + CSV
 
-Workers are auto-created on first successful Google sign-in / check-in.
-
-## Deploy (GitHub → Netlify)
+## Deploy (GitHub → Vercel)
 
 1. Push to GitHub.
-2. Netlify → **Add new site → Import from Git**.
-3. Enable **Netlify Database**.
-4. Set all env vars above.
-5. Add the production Google redirect URI.
-6. Deploy. Confirm migration `0002_google_sso_workers.sql` applies.
+2. [vercel.com/new](https://vercel.com/new) → import the repo (Next.js detected).
+3. **Marketplace → Storage → Neon Postgres** → install/integrate (injects `POSTGRES_URL`).
+4. Set Auth + office env vars (above).
+5. Add production Google redirect URI for the Vercel domain.
+6. Deploy.
+7. Apply schema:
+   ```bash
+   # from a machine with POSTGRES_URL (local .env or vercel env pull)
+   npm run db:migrate
+   ```
+   Or paste `db/schema.sql` into the Neon/psql SQL editor once.
+8. Open `/api/attendance/diag` → `readyForCheckIn: true`.
 
 ## Local development
 
 ```bash
 npm install
-cp .env.example .env   # fill Google + office values
-npx netlify init
-npx netlify dev        # http://localhost:8888
+cp .env.example .env   # fill Google + POSTGRES_URL + office values
+npm run db:migrate     # applies db/migrations + db/schema.sql
+npm run dev            # http://localhost:3000
 ```
 
-Apply migrations locally:
+## Migrations
 
-```bash
-npx netlify database migrations apply
-```
+| Path | Purpose |
+|------|---------|
+| `db/migrations/*.sql` | Ordered files recorded in `schema_migrations` |
+| `db/schema.sql` | Idempotent full schema (safe to re-run) |
+| `npm run db:migrate` | Runs pending migrations + schema.sql |
 
 ## API summary
 
@@ -183,27 +178,15 @@ npx netlify database migrations apply
 |----------|------|---------|
 | `GET/POST /api/auth/*` | — | NextAuth (Google) |
 | `GET /api/auth/session` | session | Who am I + isAdmin |
-| `GET /api/attendance/today` | worker | Today’s check-in/out status |
-| `POST /api/check-in` | worker | GPS required |
-| `POST /api/check-out` | worker | GPS required |
-| `GET /api/admin/workers` | admin | List workers |
-| `GET/PATCH /api/admin/workers/:id` | admin | Detail / update |
-| `POST /api/admin/workers/:id/activate\|deactivate` | admin | Toggle active |
-| `GET /api/admin/attendance` | admin | Report JSON |
-| `GET /api/admin/attendance.csv` | admin | CSV export |
-
-## Security notes
-
-- Identity = Google account email (no shared password check-ins)
-- GPS is mandatory on the client; server still dual-verifies
-- GPS can be spoofed — IP backup + method/distance columns help audits
-- Admin is allowlist-only via Google email
-- Failed verification does not write attendance
+| `GET /api/attendance/today` | worker | Today’s status |
+| `POST /api/check-in` / `check-out` | worker | GPS required |
+| `GET /api/admin/*` | admin | Workers / reports / CSV |
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | `netlify dev` (app + local DB) |
+| `npm run dev` | Next.js dev server |
 | `npm run build` | Production build |
 | `npm run lint` | ESLint |
+| `npm run db:migrate` | Apply Postgres migrations |

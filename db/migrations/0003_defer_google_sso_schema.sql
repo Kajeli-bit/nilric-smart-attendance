@@ -1,13 +1,9 @@
 -- Defensive schema fix for Google SSO + check-in (idempotent)
--- Postgres note: UNIQUE columns create constraint-backed indexes.
--- Those indexes cannot be DROP INDEX'd directly — drop the CONSTRAINT first.
+-- Postgres: UNIQUE columns create constraint-backed indexes — drop CONSTRAINT first.
 
--- 1) workers.email
 ALTER TABLE workers
   ADD COLUMN IF NOT EXISTS email TEXT;
 
--- 2) Unique email for lookups / ON CONFLICT (Postgres allows multiple NULLs)
--- Drop constraint-backed objects first, then any leftover standalone indexes.
 ALTER TABLE workers DROP CONSTRAINT IF EXISTS workers_email_key;
 ALTER TABLE workers DROP CONSTRAINT IF EXISTS workers_email_unique_idx;
 DROP INDEX IF EXISTS workers_email_unique_idx;
@@ -16,17 +12,14 @@ DROP INDEX IF EXISTS workers_email_key;
 CREATE UNIQUE INDEX IF NOT EXISTS workers_email_key
   ON workers (email);
 
--- 3) employee_code optional + not unique-blocking (display only)
 ALTER TABLE workers
   ALTER COLUMN employee_code DROP NOT NULL;
 
--- 0001 created employee_code TEXT NOT NULL UNIQUE → constraint workers_employee_code_key
 ALTER TABLE workers DROP CONSTRAINT IF EXISTS workers_employee_code_key;
 ALTER TABLE workers DROP CONSTRAINT IF EXISTS workers_employee_code_unique;
 DROP INDEX IF EXISTS workers_employee_code_key;
 DROP INDEX IF EXISTS workers_employee_code_unique;
 
--- 4) Ensure attendance tables exist even if 0001 was skipped
 CREATE TABLE IF NOT EXISTS attendance_days (
   id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   worker_id            UUID NOT NULL REFERENCES workers(id) ON DELETE CASCADE,

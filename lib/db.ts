@@ -1,27 +1,88 @@
-import { getDatabase } from "@netlify/database";
+import postgres from "postgres";
 
-type Database = ReturnType<typeof getDatabase>;
+type PostgresSql = ReturnType<typeof postgres>;
 
-let cached: Database | null = null;
+/** Tagged-template SQL matching how API routes call `db.sql<T>` / `db.sql.unsafe`. */
+export type SqlTag = {
+  <T = Record<string, unknown>>(
+    strings: TemplateStringsArray,
+    ...values: unknown[]
+  ): Promise<T[]>;
+  unsafe<T = Record<string, unknown>>(
+    query: string,
+    params?: readonly unknown[],
+  ): Promise<T[]>;
+};
 
-function getDb(): Database {
-  if (!cached) {
-    // Lazy init: must not run at build/page-data collection time.
-    cached = getDatabase();
+let cached: PostgresSql | null = null;
+
+function resolveConnectionString(): string {
+  const url =
+    process.env.POSTGRES_URL?.trim() ||
+    process.env.POSTGRES_URL_NON_POOLING?.trim() ||
+    process.env.POSTGRES_PRISMA_URL?.trim() ||
+    process.env.DATABASE_URL?.trim() ||
+    "";
+
+  if (!url) {
+    throw new Error(
+      "DATABASE_NOT_CONFIGURED: Set POSTGRES_URL (Vercel Marketplace Postgres / Neon) in project environment variables.",
+    );
   }
-  return cached;
+  return url;
 }
 
 /**
- * Lazy proxy so route modules can `import { db } from "@/lib/db"` and use
- * `db.sql` without calling getDatabase() at module load / Next build time.
+ * Lazy Postgres.js client.
+ * Must not connect at module import / Next build time.
  */
-export const db = new Proxy({} as Database, {
+function getSql(): PostgresSql {
+  if (cached) return cached;
+
+  const url = resolveConnectionString();
+
+  cached = postgres(url, {
+    max: 1,
+    idle_timeout: 20,
+    connect_timeout: 10,
+    ssl: "require",
+    // Transaction-mode poolers break named prepared statements.
+    prepare: false,
+  });
+
+  return cached;
+}
+
+function tagSql(sql: PostgresSql): SqlTag {
+  const tagged = ((
+    strings: TemplateStringsArray,
+    ...values: unknown[]
+  ) => {
+    return sql(strings, ...(values as never[])) as Promise<never[]>;
+  }) as unknown as SqlTag;
+
+  tagged.unsafe = ((query: string, params?: readonly unknown[]) => {
+    return sql.unsafe(query, params as never[]) as Promise<never[]>;
+  }) as SqlTag["unsafe"];
+
+  return tagged;
+}
+
+export type DbClient = {
+  sql: SqlTag;
+};
+
+/**
+ * Lazy proxy: `import { db } from "@/lib/db"` then `await db.sql\`...\``
+ * or `await db.sql.unsafe(query, params)`.
+ */
+export const db: DbClient = new Proxy({} as DbClient, {
   get(_target, prop) {
-    const instance = getDb();
-    const value = Reflect.get(instance, prop, instance);
+    if (prop === "sql") return tagSql(getSql());
+    const sql = getSql();
+    const value = Reflect.get(sql, prop, sql);
     if (typeof value === "function") {
-      return (value as (...args: unknown[]) => unknown).bind(instance);
+      return (value as (...args: unknown[]) => unknown).bind(sql);
     }
     return value;
   },

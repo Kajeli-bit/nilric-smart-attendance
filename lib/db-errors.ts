@@ -11,13 +11,15 @@ export function classifyDbError(err: unknown): {
 
   if (
     name === "MissingDatabaseConnectionError" ||
-    /NETLIFY_DB_URL|not been configured to use Netlify Database/i.test(message)
+    /DATABASE_NOT_CONFIGURED|POSTGRES_URL|DATABASE_URL|not been configured/i.test(
+      message,
+    )
   ) {
     return {
       status: 503,
       error: "DATABASE_NOT_CONFIGURED",
       message:
-        "Netlify Database is not configured for this site. Enable Data & Storage → Database, then redeploy.",
+        "Postgres is not configured for this Vercel project. Install Neon Postgres (Marketplace) or set POSTGRES_URL, then redeploy.",
     };
   }
 
@@ -26,7 +28,7 @@ export function classifyDbError(err: unknown): {
       status: 503,
       error: "DATABASE_SCHEMA_MISSING",
       message:
-        "Database tables are missing. Apply migrations under netlify/database/migrations and redeploy.",
+        "Database tables are missing. Run `npm run db:migrate` against POSTGRES_URL (or apply db/migrations), then redeploy.",
     };
   }
 
@@ -47,7 +49,7 @@ export function classifyDbError(err: unknown): {
     };
   }
 
-  if (/timeout|ECONN|connection/i.test(message)) {
+  if (/timeout|ECONN|connection|ENOTFOUND|CONNECT_TIMEOUT/i.test(message)) {
     return {
       status: 503,
       error: "DATABASE_UNAVAILABLE",

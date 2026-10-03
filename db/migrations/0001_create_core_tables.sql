@@ -1,4 +1,5 @@
-CREATE TABLE workers (
+-- 0001 core tables (historical Netlify migration; kept for ordered runners)
+CREATE TABLE IF NOT EXISTS workers (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   employee_code TEXT NOT NULL UNIQUE,
   name          TEXT NOT NULL,
@@ -7,7 +8,7 @@ CREATE TABLE workers (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE attendance_days (
+CREATE TABLE IF NOT EXISTS attendance_days (
   id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   worker_id            UUID NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
   attendance_day       DATE NOT NULL,
@@ -28,10 +29,10 @@ CREATE TABLE attendance_days (
   UNIQUE (worker_id, attendance_day)
 );
 
-CREATE INDEX attendance_days_day_idx ON attendance_days (attendance_day);
-CREATE INDEX attendance_days_worker_idx ON attendance_days (worker_id, attendance_day);
+CREATE INDEX IF NOT EXISTS attendance_days_day_idx ON attendance_days (attendance_day);
+CREATE INDEX IF NOT EXISTS attendance_days_worker_idx ON attendance_days (worker_id, attendance_day);
 
-CREATE TABLE attendance_events (
+CREATE TABLE IF NOT EXISTS attendance_events (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   attendance_day_id   UUID NOT NULL REFERENCES attendance_days(id) ON DELETE CASCADE,
   worker_id           UUID NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
@@ -45,5 +46,5 @@ CREATE TABLE attendance_events (
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX attendance_events_worker_time_idx ON attendance_events (worker_id, occurred_at DESC);
-CREATE INDEX attendance_events_time_idx ON attendance_events (occurred_at DESC);
+CREATE INDEX IF NOT EXISTS attendance_events_worker_time_idx ON attendance_events (worker_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS attendance_events_time_idx ON attendance_events (occurred_at DESC);

@@ -11,7 +11,12 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   const checks: Record<string, boolean | string> = {
-    hasNetlifyDbUrl: Boolean(process.env.NETLIFY_DB_URL?.trim()),
+    hasPostgresUrl: Boolean(
+      process.env.POSTGRES_URL?.trim() ||
+        process.env.POSTGRES_URL_NON_POOLING?.trim() ||
+        process.env.POSTGRES_PRISMA_URL?.trim() ||
+        process.env.DATABASE_URL?.trim(),
+    ),
     hasAuthSecret: Boolean(process.env.AUTH_SECRET?.trim()),
   };
 
