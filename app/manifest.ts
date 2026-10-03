@@ -9,12 +9,12 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#f7f3ff",
+    background_color: "#ffffff",
     theme_color: "#7C48CF",
     scope: "/",
     icons: [
       {
-        src: "/icons/logo.png",
+        src: "/icons/favicon.png",
         sizes: "any",
         type: "image/png",
       },

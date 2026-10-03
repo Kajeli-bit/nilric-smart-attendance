@@ -16,11 +16,11 @@ export const metadata: Metadata = {
   },
   description: APP_DESCRIPTION,
   manifest: "/manifest.webmanifest",
-  // Tab / browser favicon — company logo
+  // Tab favicon — PWA/company logo on a white background
   icons: {
     icon: [
       { url: "/icons/favicon.png", type: "image/png" },
-      { url: "/icons/logo.png", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
     ],
     apple: [
       { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
@@ -50,8 +50,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/icons/favicon.png" type="image/png" />
+        <link rel="icon" href="/icons/favicon.png" sizes="any" type="image/png" />
         <link rel="shortcut icon" href="/icons/favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
       <body className="min-h-screen text-slate-900 antialiased">
         <AppProviders>{children}</AppProviders>
