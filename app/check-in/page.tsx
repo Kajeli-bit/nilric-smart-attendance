@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { CheckInForm } from "@/components/CheckInForm";
-import { GoogleSignInButton } from "@/components/AuthButtons";
-import { InstallAppPrompt } from "@/components/InstallAppPrompt";
+import { SignInPanel } from "@/components/SignInPanel";
+import { BrandHeader } from "@/components/BrandHeader";
 
 export const metadata: Metadata = {
   title: "Check In",
@@ -16,37 +16,21 @@ export default async function CheckInPage() {
   const session = await auth();
   const email = session?.user?.email?.trim().toLowerCase() ?? null;
 
+  if (!email) {
+    return (
+      <main className="flex min-h-[70vh] items-center justify-center">
+        <SignInPanel />
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto w-full max-w-md">
-      <header className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-900">Worker Attendance</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Google sign-in · location required
-        </p>
-      </header>
-
-      {email ? (
-        <CheckInForm />
-      ) : (
-        <div className="mx-auto w-full max-w-md space-y-4">
-          <InstallAppPrompt />
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">
-              Sign in required
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Use your Google account to check in or out. This prevents
-              credential sharing.
-            </p>
-            <div className="mt-4">
-              <GoogleSignInButton label="Sign in with Google" />
-            </div>
-            <p className="mt-3 text-xs text-slate-500">
-              After signing in you can check in from this app or the website.
-            </p>
-          </div>
-        </div>
-      )}
+      <BrandHeader
+        title="Worker Attendance"
+        subtitle="Google sign-in · location required"
+      />
+      <CheckInForm />
     </main>
   );
 }

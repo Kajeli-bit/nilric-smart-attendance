@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { GoogleSignInButton, UserBadge } from "@/components/AuthButtons";
+import { Spinner } from "@/components/Spinner";
 
 export function AdminNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const { data: session, status } = useSession();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
@@ -32,7 +32,10 @@ export function AdminNav() {
 
   if (status === "loading" || isAdmin === null) {
     return (
-      <div className="mb-6 text-sm text-slate-500">Checking admin access…</div>
+      <div className="mb-6 inline-flex items-center gap-2 text-sm text-slate-500">
+        <Spinner size={14} className="text-teal-700" />
+        Checking admin access…
+      </div>
     );
   }
 
@@ -56,13 +59,6 @@ export function AdminNav() {
     { href: "/admin/reports", label: "Reports" },
   ];
 
-  async function logout() {
-    const { signOut } = await import("next-auth/react");
-    await signOut({ callbackUrl: "/" });
-  }
-
-  void router;
-
   return (
     <nav className="mb-6 flex flex-wrap items-center gap-2 border-b border-slate-200 pb-4">
       <span className="mr-2 font-semibold text-slate-800">Admin</span>
@@ -79,15 +75,8 @@ export function AdminNav() {
           {item.label}
         </Link>
       ))}
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto">
         <UserBadge />
-        <button
-          type="button"
-          onClick={logout}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700"
-        >
-          Log out
-        </button>
       </div>
     </nav>
   );

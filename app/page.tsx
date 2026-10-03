@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { GoogleSignInButton, UserBadge } from "@/components/AuthButtons";
+import { UserBadge } from "@/components/AuthButtons";
+import { BrandHeader } from "@/components/BrandHeader";
+import { SignInPanel } from "@/components/SignInPanel";
+import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 
 export const metadata: Metadata = {
   title: "Nilric Smart Attendance",
@@ -14,34 +17,32 @@ export default async function HomePage() {
   const email = session?.user?.email?.trim().toLowerCase() ?? null;
   const signedIn = Boolean(email);
 
+  if (!signedIn) {
+    return (
+      <main className="flex min-h-[70vh] items-center justify-center">
+        <SignInPanel />
+      </main>
+    );
+  }
+
   return (
-    <main className="flex min-h-[70vh] flex-col items-center justify-center gap-6 text-center">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Nilric Smart Attendance
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Sign in with Google, then check in from your phone.
+    <main className="mx-auto w-full max-w-md">
+      <BrandHeader />
+      <InstallAppPrompt />
+      <div className="mt-4 space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <UserBadge />
+        <p className="text-sm text-slate-600">
+          Signed in as <strong>{email}</strong>
         </p>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="text-sm text-slate-600">
           Location access is required for every check-in and check-out.
         </p>
-      </div>
-
-      <div className="w-full max-w-sm space-y-3">
-        {signedIn ? (
-          <>
-            <UserBadge />
-            <Link
-              href="/check-in"
-              className="block rounded-xl bg-teal-700 px-6 py-3 text-center font-semibold text-white hover:bg-teal-800"
-            >
-              Open Check-In
-            </Link>
-          </>
-        ) : (
-          <GoogleSignInButton label="Sign in with Google" />
-        )}
+        <Link
+          href="/check-in"
+          className="block rounded-xl bg-teal-700 px-6 py-3 text-center font-semibold text-white transition hover:bg-teal-800"
+        >
+          Open Check-In
+        </Link>
       </div>
     </main>
   );

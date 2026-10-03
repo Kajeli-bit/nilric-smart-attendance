@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import type { GpsCoords } from "@/lib/types";
-import { GoogleSignInButton, UserBadge } from "@/components/AuthButtons";
+import { UserBadge } from "@/components/AuthButtons";
+import { SignInPanel } from "@/components/SignInPanel";
 import { InstallAppPrompt } from "@/components/InstallAppPrompt";
+import { Spinner } from "@/components/Spinner";
 
 type StatusKind = "idle" | "locating" | "requesting_location" | "success" | "error";
 
@@ -79,6 +81,7 @@ export function CheckInForm() {
   const [today, setToday] = useState<TodayState | null>(null);
   const [status, setStatus] = useState<StatusState>({ kind: "idle", message: "" });
   const [busy, setBusy] = useState(false);
+  const [action, setAction] = useState<"check_in" | "check_out" | null>(null);
   const [loadingToday, setLoadingToday] = useState(false);
 
   async function loadToday() {
@@ -135,9 +138,10 @@ export function CheckInForm() {
     };
   }, [authStatus]);
 
-  async function submit(action: "check_in" | "check_out") {
+  async function submit(nextAction: "check_in" | "check_out") {
     if (busy) return;
     setBusy(true);
+    setAction(nextAction);
 
     setStatus({
       kind: "requesting_location",
@@ -153,19 +157,20 @@ export function CheckInForm() {
           "Location access is required to check in or out.",
       });
       setBusy(false);
+      setAction(null);
       return;
     }
 
     setStatus({
       kind: "locating",
       message:
-        action === "check_in"
+        nextAction === "check_in"
           ? "Location allowed. Checking you in…"
           : "Location allowed. Checking you out…",
     });
 
     try {
-      const endpoint = action === "check_in" ? "/api/check-in" : "/api/check-out";
+      const endpoint = nextAction === "check_in" ? "/api/check-in" : "/api/check-out";
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -198,7 +203,7 @@ export function CheckInForm() {
         kind: "success",
         message:
           data.message ||
-          (action === "check_in"
+          (nextAction === "check_in"
             ? `Checked in via ${method === "office_ip" ? "office Wi-Fi" : "GPS"}.`
             : `Checked out via ${method === "office_ip" ? "office Wi-Fi" : "GPS"}.`),
         method,
@@ -212,38 +217,31 @@ export function CheckInForm() {
       });
     } finally {
       setBusy(false);
+      setAction(null);
     }
   }
 
   if (authStatus === "loading") {
     return (
       <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-5 text-center text-slate-600">
-        Loading…
+        <span className="inline-flex items-center gap-2">
+          <Spinner size={16} className="text-teal-700" />
+          Loading your attendance status…
+        </span>
       </div>
     );
   }
 
   if (authStatus !== "authenticated") {
-    return (
-      <div className="mx-auto w-full max-w-md space-y-4">
-        <InstallAppPrompt />
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Sign in required</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Use your Google account to check in or out. This prevents credential sharing.
-          </p>
-          <div className="mt-4">
-            <GoogleSignInButton label="Sign in with Google" />
-          </div>
-        </div>
-      </div>
-    );
+    return <SignInPanel />;
   }
 
   const workerName = today?.workerName || session?.user?.name || session?.user?.email || "there";
   const officeLabel = today?.officeCity
     ? `${today.officeName}, ${today.officeCity}`
     : today?.officeName || "the office";
+
+  const statusBusy = status.kind === "locating" || status.kind === "requesting_location";
 
   return (
     <div className="mx-auto w-full max-w-md space-y-4">
@@ -269,7 +267,12 @@ export function CheckInForm() {
                   : "Not checked in yet today"}
             </p>
           )}
-          {loadingToday && <p className="mt-1 text-xs">Refreshing status…</p>}
+          {loadingToday && (
+            <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-teal-800">
+              <Spinner size={12} className="text-teal-700" />
+              Refreshing status…
+            </p>
+          )}
         </div>
 
         <p className="text-sm text-slate-600">
@@ -281,18 +284,34 @@ export function CheckInForm() {
           <button
             type="button"
             disabled={busy || today?.checkedIn === true}
+            aria-busy={busy && action === "check_in"}
             onClick={() => submit("check_in")}
-            className="rounded-xl bg-teal-700 px-4 py-3 text-base font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-3 text-base font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Check In
+            {busy && action === "check_in" ? (
+              <>
+                <Spinner size={16} className="text-white" />
+                Working…
+              </>
+            ) : (
+              "Check In"
+            )}
           </button>
           <button
             type="button"
             disabled={busy || !today?.checkedIn || today?.checkedOut === true}
+            aria-busy={busy && action === "check_out"}
             onClick={() => submit("check_out")}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Check Out
+            {busy && action === "check_out" ? (
+              <>
+                <Spinner size={16} className="text-slate-500" />
+                Working…
+              </>
+            ) : (
+              "Check Out"
+            )}
           </button>
         </div>
       </div>
@@ -307,9 +326,15 @@ export function CheckInForm() {
                 : "border-slate-200 bg-slate-50 text-slate-700"
           }`}
           role="status"
+          aria-live="polite"
         >
-          <p className={status.kind === "success" ? "text-base font-semibold" : ""}>
-            {status.message}
+          <p
+            className={`inline-flex items-start gap-2 ${
+              status.kind === "success" ? "text-base font-semibold" : ""
+            }`}
+          >
+            {statusBusy && <Spinner size={14} className="mt-0.5 shrink-0 text-teal-700" />}
+            <span>{status.message}</span>
           </p>
           {status.kind === "success" &&
             status.distance !== null &&
