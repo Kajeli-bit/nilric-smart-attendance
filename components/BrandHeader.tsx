@@ -8,15 +8,15 @@ export function BrandHeader({
   subtitle?: string;
 }) {
   return (
-    <header className="relative mb-6 overflow-hidden pb-2 text-center">
-      <div className="brand-glow pointer-events-none absolute inset-x-0 -top-10 -z-10 h-80" aria-hidden="true" />
-      <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[1.4rem] border border-brand-200 bg-white p-2 shadow-[0_16px_40px_-18px_rgba(124,72,207,0.55)]">
+    <header className="relative mb-8 overflow-hidden pb-4 pt-4 text-center">
+      <div className="brand-glow pointer-events-none absolute inset-x-0 -top-16 -z-10 h-96" aria-hidden="true" />
+      <div className="mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-[1.6rem] border border-brand-200 bg-white p-3 shadow-[0_18px_44px_-18px_rgba(124,72,207,0.55)]">
         <Image
           src="/icons/favicon.png"
           alt="Nilric logo"
-          width={72}
-          height={72}
-          className="h-16 w-16 object-contain"
+          width={96}
+          height={96}
+          className="h-24 w-24 object-contain"
           priority
         />
       </div>
