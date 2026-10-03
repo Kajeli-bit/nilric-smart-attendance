@@ -225,7 +225,7 @@ export function CheckInForm() {
     return (
       <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-5 text-center text-slate-600">
         <span className="inline-flex items-center gap-2">
-          <Spinner size={16} className="text-teal-700" />
+          <Spinner size={16} className="text-brand-600" />
           Loading your attendance status…
         </span>
       </div>
@@ -247,19 +247,19 @@ export function CheckInForm() {
     <div className="mx-auto w-full max-w-md space-y-4">
       <InstallAppPrompt />
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="card mt-4 space-y-4 rounded-3xl p-5">
         <UserBadge />
-        <p className="mt-2 text-sm text-slate-600">
-          Signed in as <strong>{session?.user?.email}</strong>
+        <p className="text-sm text-slate-600">
+          Signed in as <strong className="text-brand-800">{session?.user?.email}</strong>
         </p>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="rounded-xl bg-teal-50 p-3 text-sm text-teal-900">
+      <div className="card mt-4 space-y-4 rounded-3xl p-5">
+        <div className="rounded-2xl bg-brand-50 p-4 text-sm text-brand-900 ring-1 ring-brand-100">
           <p className="font-semibold">Office</p>
-          <p>{officeLabel}</p>
+          <p className="mt-0.5 text-brand-800">{officeLabel}</p>
           {today && (
-            <p className="mt-1 text-xs text-teal-800">
+            <p className="mt-1 text-xs text-brand-800/90">
               {today.checkedIn && !today.checkedOut
                 ? `Checked in at ${formatTime(today.checkInAt)}`
                 : today.checkedIn && today.checkedOut
@@ -268,16 +268,16 @@ export function CheckInForm() {
             </p>
           )}
           {loadingToday && (
-            <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-teal-800">
-              <Spinner size={12} className="text-teal-700" />
+            <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-brand-800">
+              <Spinner size={12} className="text-brand-600" />
               Refreshing status…
             </p>
           )}
         </div>
 
-        <p className="text-sm text-slate-600">
-          Hi <strong>{workerName}</strong>. Location access is required for every
-          check-in and check-out.
+        <p className="text-sm leading-relaxed text-slate-600">
+          Hi <strong className="text-slate-800">{workerName}</strong>. Location access
+          is required for every check-in and check-out.
         </p>
 
         <div className="grid grid-cols-2 gap-3 pt-1">
@@ -286,7 +286,7 @@ export function CheckInForm() {
             disabled={busy || today?.checkedIn === true}
             aria-busy={busy && action === "check_in"}
             onClick={() => submit("check_in")}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-3 text-base font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-primary inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-base font-semibold"
           >
             {busy && action === "check_in" ? (
               <>
@@ -302,11 +302,11 @@ export function CheckInForm() {
             disabled={busy || !today?.checkedIn || today?.checkedOut === true}
             aria-busy={busy && action === "check_out"}
             onClick={() => submit("check_out")}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-secondary inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-base font-semibold"
           >
             {busy && action === "check_out" ? (
               <>
-                <Spinner size={16} className="text-slate-500" />
+                <Spinner size={16} className="text-brand-600" />
                 Working…
               </>
             ) : (
@@ -318,12 +318,12 @@ export function CheckInForm() {
 
       {status.message && (
         <div
-          className={`rounded-xl border p-4 text-sm ${
+          className={`mt-4 rounded-2xl border p-4 text-sm ${
             status.kind === "success"
-              ? "border-teal-200 bg-teal-50 text-teal-900"
+              ? "border-brand-200 bg-brand-50 text-brand-900"
               : status.kind === "error"
                 ? "border-red-200 bg-red-50 text-red-800"
-                : "border-slate-200 bg-slate-50 text-slate-700"
+                : "border-brand-100 bg-white text-slate-700"
           }`}
           role="status"
           aria-live="polite"
@@ -333,13 +333,13 @@ export function CheckInForm() {
               status.kind === "success" ? "text-base font-semibold" : ""
             }`}
           >
-            {statusBusy && <Spinner size={14} className="mt-0.5 shrink-0 text-teal-700" />}
+            {statusBusy && <Spinner size={14} className="mt-0.5 shrink-0 text-brand-600" />}
             <span>{status.message}</span>
           </p>
           {status.kind === "success" &&
             status.distance !== null &&
             status.distance !== undefined && (
-              <p className="mt-1 text-xs text-teal-800">
+              <p className="mt-1 text-xs text-brand-800">
                 {Math.round(status.distance)}m from office
                 {status.method ? ` · verified via ${status.method === "office_ip" ? "office Wi-Fi" : "GPS"}` : ""}
               </p>

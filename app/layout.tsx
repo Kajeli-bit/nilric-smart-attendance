@@ -6,6 +6,7 @@ const APP_NAME = "Nilric Smart Attendance";
 const APP_DEFAULT_TITLE = "Nilric Smart Attendance";
 const APP_TITLE_TEMPLATE = "%s - Nilric";
 const APP_DESCRIPTION = "Google SSO location-based worker attendance";
+const THEME_COLOR = "#7C48CF";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
@@ -15,6 +16,16 @@ export const metadata: Metadata = {
   },
   description: APP_DESCRIPTION,
   manifest: "/manifest.webmanifest",
+  // Tab / browser favicon — company logo
+  icons: {
+    icon: [
+      { url: "/icons/favicon.png", type: "image/png" },
+      { url: "/icons/logo.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -23,18 +34,10 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  icons: {
-    icon: [
-      { url: "/icons/logo.png", sizes: "any", type: "image/png" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-    ],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
-  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0F766E",
+  themeColor: THEME_COLOR,
   width: "device-width",
   initialScale: 1,
 };
@@ -46,7 +49,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
+      <head>
+        <link rel="icon" href="/icons/favicon.png" type="image/png" />
+        <link rel="shortcut icon" href="/icons/favicon.png" type="image/png" />
+      </head>
+      <body className="min-h-screen text-slate-900 antialiased">
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

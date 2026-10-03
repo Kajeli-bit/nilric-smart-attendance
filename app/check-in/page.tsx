@@ -18,14 +18,14 @@ export default async function CheckInPage() {
 
   if (!email) {
     return (
-      <main className="flex min-h-[70vh] items-center justify-center">
+      <main className="flex min-h-[80vh] items-center justify-center py-8">
         <SignInPanel />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-md">
+    <main className="mx-auto w-full max-w-md py-4">
       <BrandHeader
         title="Worker Attendance"
         subtitle="Google sign-in · location required"

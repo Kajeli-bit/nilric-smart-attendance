@@ -8,14 +8,15 @@ export function BrandHeader({
   subtitle?: string;
 }) {
   return (
-    <header className="mb-6 text-center">
-      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-teal-700 shadow-sm ring-1 ring-teal-800/20">
+    <header className="relative mb-6 overflow-hidden pb-2 text-center">
+      <div className="brand-glow pointer-events-none absolute inset-x-0 -top-10 -z-10 h-56" aria-hidden="true" />
+      <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[1.4rem] border border-brand-200 bg-white p-2 shadow-[0_16px_40px_-18px_rgba(124,72,207,0.55)]">
         <Image
           src="/icons/logo.png"
           alt="Nilric logo"
-          width={56}
-          height={56}
-          className="h-14 w-14 object-contain"
+          width={72}
+          height={72}
+          className="h-16 w-16 object-contain"
           priority
         />
       </div>
@@ -23,7 +24,9 @@ export function BrandHeader({
         {title}
       </h1>
       {subtitle ? (
-        <p className="mt-2 text-sm text-slate-600 sm:text-base">{subtitle}</p>
+        <p className="mx-auto mt-2 max-w-sm text-sm text-slate-600 sm:text-base">
+          {subtitle}
+        </p>
       ) : null}
     </header>
   );

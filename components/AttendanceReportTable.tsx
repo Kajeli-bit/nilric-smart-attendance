@@ -89,7 +89,7 @@ export function AttendanceReportTable() {
         <button
           type="button"
           onClick={() => load(from, to)}
-          className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white"
+          className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white"
         >
           Apply
         </button>

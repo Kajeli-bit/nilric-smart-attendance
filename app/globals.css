@@ -1,13 +1,81 @@
 @import "tailwindcss";
 
+@theme {
+  /* Lighter Nilric purple — derived from company logo, softened for UI */
+  --color-brand-50: #f7f3ff;
+  --color-brand-100: #efe7ff;
+  --color-brand-200: #e0d0fc;
+  --color-brand-300: #c9aef5;
+  --color-brand-400: #ad87ed;
+  --color-brand-500: #9366e0;
+  --color-brand-600: #7c48cf;
+  --color-brand-700: #6a37b0;
+  --color-brand-800: #582d90;
+  --color-brand-900: #472473;
+  --color-brand-950: #2d154a;
+}
+
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #f7f5fc;
+  --foreground: #1e1b2e;
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(1200px 600px at 50% -120px, #ebe3ff 0%, transparent 55%),
+    var(--background);
   color: var(--foreground);
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
     sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Soft brand glow used behind logo / hero areas */
+.brand-glow {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(173, 135, 237, 0.35), transparent 55%),
+    radial-gradient(circle at 70% 80%, rgba(147, 102, 224, 0.22), transparent 50%),
+    linear-gradient(180deg, #f3edff 0%, #faf8ff 100%);
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(224, 208, 252, 0.9);
+  box-shadow:
+    0 1px 2px rgba(71, 36, 115, 0.04),
+    0 12px 32px -16px rgba(71, 36, 115, 0.18);
+  backdrop-filter: blur(8px);
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #9b73e4 0%, #7c48cf 100%);
+  color: #fff;
+  box-shadow: 0 8px 20px -10px rgba(124, 72, 207, 0.75);
+  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+  box-shadow: 0 10px 24px -10px rgba(124, 72, 207, 0.85);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #fff;
+  color: #2d154a;
+  border: 1px solid #e0d0fc;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f7f3ff;
+  border-color: #c9aef5;
 }

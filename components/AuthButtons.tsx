@@ -31,10 +31,10 @@ export function GoogleSignInButton({
       onClick={handleClick}
       disabled={busy}
       aria-busy={busy}
-      className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+      className="btn-primary inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-base font-semibold"
     >
       {busy ? (
-        <Spinner size={16} className="text-slate-500" />
+        <Spinner size={16} className="text-white" />
       ) : (
         <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
           <path
@@ -67,7 +67,7 @@ export function UserBadge() {
   if (status === "loading") {
     return (
       <span className="inline-flex items-center gap-2 text-sm text-slate-500">
-        <Spinner size={14} className="text-teal-700" />
+        <Spinner size={14} className="text-brand-600" />
         Checking session…
       </span>
     );
@@ -85,42 +85,49 @@ export function UserBadge() {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="flex min-w-0 items-center gap-2">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         {data.user.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={data.user.image}
             alt=""
-            width={28}
-            height={28}
-            className="rounded-full"
+            width={36}
+            height={36}
+            className="rounded-full ring-2 ring-brand-200"
           />
         ) : (
-          <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-teal-700">
+          <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-100 ring-2 ring-brand-200">
             <Image
               src="/icons/logo.png"
               alt=""
-              width={24}
-              height={24}
-              className="h-6 w-6 object-contain"
+              width={28}
+              height={28}
+              className="h-7 w-7 object-contain"
             />
           </span>
         )}
-        <span className="max-w-[180px] truncate text-sm text-slate-700">
-          {data.user.name || data.user.email}
-        </span>
+        <div className="min-w-0">
+          <p className="max-w-[200px] truncate text-sm font-semibold text-slate-800">
+            {data.user.name || data.user.email}
+          </p>
+          {data.user.name && (
+            <p className="max-w-[200px] truncate text-xs text-slate-500">
+              {data.user.email}
+            </p>
+          )}
+        </div>
       </div>
       <button
         type="button"
         onClick={handleSignOut}
         disabled={signingOut}
         aria-busy={signingOut}
-        className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-2.5 py-1 text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+        className="btn-secondary inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium"
       >
         {signingOut ? (
           <>
-            <Spinner size={12} className="text-slate-500" />
+            <Spinner size={12} className="text-brand-600" />
             Signing out…
           </>
         ) : (

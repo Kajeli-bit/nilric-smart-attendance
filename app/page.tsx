@@ -19,27 +19,27 @@ export default async function HomePage() {
 
   if (!signedIn) {
     return (
-      <main className="flex min-h-[70vh] items-center justify-center">
+      <main className="flex min-h-[80vh] items-center justify-center py-8">
         <SignInPanel />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-md">
+    <main className="mx-auto w-full max-w-md py-4">
       <BrandHeader />
       <InstallAppPrompt />
-      <div className="mt-4 space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="card mt-4 space-y-4 rounded-3xl p-6">
         <UserBadge />
-        <p className="text-sm text-slate-600">
-          Signed in as <strong>{email}</strong>
-        </p>
-        <p className="text-sm text-slate-600">
-          Location access is required for every check-in and check-out.
-        </p>
+        <div className="rounded-2xl bg-brand-50 p-4 text-sm text-brand-900">
+          <p className="font-semibold">You’re signed in</p>
+          <p className="mt-1 text-brand-800">
+            Location access is required for every check-in and check-out.
+          </p>
+        </div>
         <Link
           href="/check-in"
-          className="block rounded-xl bg-teal-700 px-6 py-3 text-center font-semibold text-white transition hover:bg-teal-800"
+          className="btn-primary block rounded-2xl px-6 py-3.5 text-center font-semibold"
         >
           Open Check-In
         </Link>

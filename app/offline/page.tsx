@@ -13,7 +13,7 @@ export default function OfflinePage() {
       </p>
       <Link
         href="/check-in"
-        className="rounded-xl bg-teal-700 px-5 py-2.5 font-semibold text-white"
+        className="btn-primary rounded-2xl px-5 py-2.5 font-semibold"
       >
         Back to check-in
       </Link>

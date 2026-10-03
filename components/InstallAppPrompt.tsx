@@ -134,10 +134,10 @@ export function InstallAppPrompt() {
       role="dialog"
       aria-label="Install Attendance app"
     >
-      <div className="rounded-2xl border border-teal-200 bg-white p-4 shadow-lg shadow-slate-900/10">
+      <div className="card rounded-3xl p-4">
         <div className="flex items-start gap-3">
           <Image
-            src="/icons/icon-192.png"
+            src="/icons/logo.png"
             alt=""
             width={48}
             height={48}
@@ -171,14 +171,14 @@ export function InstallAppPrompt() {
               type="button"
               onClick={handleInstall}
               disabled={installing}
-              className="flex-1 rounded-xl bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
+              className="btn-primary flex-1 rounded-xl px-3 py-2 text-sm font-semibold"
             >
               {installing ? "Installing…" : "Install app"}
             </button>
           ) : (
             <a
               href="/check-in"
-              className="flex-1 rounded-xl bg-teal-700 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-teal-800"
+              className="btn-primary flex-1 rounded-xl px-3 py-2 text-center text-sm font-semibold"
             >
               Got it
             </a>

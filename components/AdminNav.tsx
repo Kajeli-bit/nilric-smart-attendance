@@ -33,7 +33,7 @@ export function AdminNav() {
   if (status === "loading" || isAdmin === null) {
     return (
       <div className="mb-6 inline-flex items-center gap-2 text-sm text-slate-500">
-        <Spinner size={14} className="text-teal-700" />
+        <Spinner size={14} className="text-brand-600" />
         Checking admin access…
       </div>
     );
@@ -68,7 +68,7 @@ export function AdminNav() {
           href={item.href}
           className={`rounded-lg px-3 py-1.5 text-sm ${
             pathname === item.href
-              ? "bg-teal-700 text-white"
+              ? "bg-brand-600 text-white shadow-sm"
               : "text-slate-600 hover:bg-slate-100"
           }`}
         >

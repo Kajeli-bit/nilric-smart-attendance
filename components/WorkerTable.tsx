@@ -98,7 +98,7 @@ export function WorkerTable() {
         <button
           type="submit"
           disabled={saving}
-          className="rounded-xl bg-teal-700 px-4 py-2 font-medium text-white disabled:opacity-50"
+          className="rounded-xl bg-brand-600 px-4 py-2 font-medium text-white disabled:opacity-50"
         >
           Add worker
         </button>
@@ -153,7 +153,7 @@ export function WorkerTable() {
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${
                         w.active
-                          ? "bg-teal-100 text-teal-800"
+                          ? "bg-brand-100 text-brand-800"
                           : "bg-slate-100 text-slate-600"
                       }`}
                     >
@@ -164,7 +164,7 @@ export function WorkerTable() {
                     <button
                       type="button"
                       onClick={() => setActive(w.id, !w.active)}
-                      className="text-sm text-teal-700 hover:underline"
+                      className="text-sm text-brand-600 hover:underline"
                     >
                       {w.active ? "Deactivate" : "Activate"}
                     </button>

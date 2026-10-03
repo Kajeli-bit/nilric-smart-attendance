@@ -89,11 +89,11 @@ export default function AdminWorkerDetailPage() {
             className="w-full rounded-xl border border-slate-300 px-3 py-2"
           />
         </div>
-        {message && <p className="text-sm text-teal-700">{message}</p>}
+        {message && <p className="text-sm text-brand-600">{message}</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
-          className="rounded-xl bg-teal-700 px-4 py-2 font-semibold text-white"
+          className="rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white"
         >
           Save changes
         </button>
