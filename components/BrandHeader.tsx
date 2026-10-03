@@ -12,7 +12,7 @@ export function BrandHeader({
       <div className="brand-glow pointer-events-none absolute inset-x-0 -top-10 -z-10 h-56" aria-hidden="true" />
       <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[1.4rem] border border-brand-200 bg-white p-2 shadow-[0_16px_40px_-18px_rgba(124,72,207,0.55)]">
         <Image
-          src="/icons/logo.png"
+          src="/icons/favicon.png"
           alt="Nilric logo"
           width={72}
           height={72}

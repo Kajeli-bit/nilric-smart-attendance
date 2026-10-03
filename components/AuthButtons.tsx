@@ -99,7 +99,7 @@ export function UserBadge() {
         ) : (
           <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-100 ring-2 ring-brand-200">
             <Image
-              src="/icons/logo.png"
+              src="/icons/favicon.png"
               alt=""
               width={28}
               height={28}

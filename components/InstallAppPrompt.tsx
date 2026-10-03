@@ -137,7 +137,7 @@ export function InstallAppPrompt() {
       <div className="card rounded-3xl p-4">
         <div className="flex items-start gap-3">
           <Image
-            src="/icons/logo.png"
+            src="/icons/favicon.png"
             alt=""
             width={48}
             height={48}
