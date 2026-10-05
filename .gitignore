@@ -41,9 +41,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Serwist generated service worker
+# Serwist generated service worker (legacy; static SW lives in public/sw.js)
 public/sw*
 public/swe-worker*
+!public/sw.js
 
 # netlify local
 .netlify

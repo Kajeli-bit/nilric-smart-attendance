@@ -21,7 +21,7 @@ Workers sign in with Google (prevents credential sharing). Location access is **
 | Framework | Next.js 16 (App Router) |
 | Auth | NextAuth v5 (`next-auth`) + Google |
 | Database | Postgres via **Vercel Marketplace → Neon** (`postgres` / Postgres.js) |
-| PWA | Serwist (`@serwist/turbopack`) |
+| PWA | Static service worker (`public/sw.js`) — no Serwist build step |
 | Hosting | **Vercel** |
 
 > **Note:** Legacy “Vercel Postgres” / Netlify Database are retired. New projects use **Neon Postgres** installed from the Vercel Marketplace. The app reads `POSTGRES_URL` (also accepts `DATABASE_URL`).

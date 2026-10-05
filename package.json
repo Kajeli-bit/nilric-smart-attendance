@@ -14,7 +14,6 @@
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
-    "esbuild-wasm": "^0.28.1",
     "next": "^16.3.8",
     "next-auth": "^5.0.0-beta.32",
     "postgres": "^3.4.9",
@@ -23,16 +22,13 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@serwist/turbopack": "^9.5.12",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.2.3",
-    "esbuild": "^0.28.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
-    "serwist": "^9.5.12",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
