@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth, getAuthConfigIssues } from "@/lib/auth";
 import { isAdminEmail } from "@/lib/env";
-import { BrandHeader } from "@/components/BrandHeader";
-import { SignInPanel } from "@/components/SignInPanel";
-import { SetupRequiredPanel } from "@/components/SetupRequiredPanel";
 import { CheckInForm } from "@/components/CheckInForm";
-import Link from "next/link";
+import { SignInPanel } from "@/components/SignInPanel";
+import { BrandHeader } from "@/components/BrandHeader";
+import { SetupRequiredPanel } from "@/components/SetupRequiredPanel";
 
 export const metadata: Metadata = {
   title: "Check In",
 };
 
+// Session cookie must be read per request so the installed PWA always sees
+// the correct signed-in / signed-out UI (no stale client session gate).
 export const dynamic = "force-dynamic";
 
 async function readSessionEmail(): Promise<{
@@ -41,46 +42,38 @@ async function readSessionEmail(): Promise<{
   }
 }
 
-/** PWA-friendly: same single-screen hub as `/` (no scroll). */
 export default async function CheckInPage() {
   const { email, isAdmin, setupIssues } = await readSessionEmail();
 
   if (setupIssues.length > 0) {
-    return (
-      <div className="app-shell app-shell-scroll">
-        <SetupRequiredPanel issues={setupIssues} title="Check-in setup required" />
-      </div>
-    );
+    return <SetupRequiredPanel issues={setupIssues} title="Check-in setup required" />;
   }
 
   if (!email) {
     return (
-      <div className="app-shell">
+      <main className="flex min-h-[80vh] items-center justify-center py-8">
         <SignInPanel />
-      </div>
+      </main>
     );
   }
 
-  // Keep PWA users on one screen — same hub as home.
-  if (!isAdmin) {
-    redirect("/");
-  }
-
   return (
-    <div className="app-shell">
+    <main className="mx-auto w-full max-w-md py-4">
       <BrandHeader
         title="Worker Attendance"
         subtitle="Google sign-in · location required"
       />
+      {isAdmin && (
+        <div className="mb-4 flex justify-center">
+          <Link
+            href="/admin"
+            className="btn-secondary rounded-xl px-4 py-2 text-sm font-semibold"
+          >
+            Open Admin Panel
+          </Link>
+        </div>
+      )}
       <CheckInForm />
-      <div className="mt-2 shrink-0 pb-1">
-        <Link
-          href="/admin"
-          className="btn-secondary flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold"
-        >
-          Open Admin Panel
-        </Link>
-      </div>
-    </div>
+    </main>
   );
 }

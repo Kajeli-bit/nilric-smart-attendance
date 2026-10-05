@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import type { GpsCoords } from "@/lib/types";
 import { UserBadge } from "@/components/AuthButtons";
+import { SignInPanel } from "@/components/SignInPanel";
+import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 import { Spinner } from "@/components/Spinner";
 
 type StatusKind = "idle" | "locating" | "requesting_location" | "success" | "error";
@@ -41,12 +43,12 @@ function requestGps(): Promise<GpsCoords | { error: string; code?: string } | nu
         if (err.code === err.PERMISSION_DENIED) {
           resolve({
             error:
-              "Location permission denied. Allow location to check in or out.",
+              "Location permission denied. Please allow location access to check in or out.",
             code: "PERMISSION_DENIED",
           });
         } else if (err.code === err.TIMEOUT) {
           resolve({
-            error: "Location timed out. Please try again.",
+            error: "Getting your location timed out. Please try again.",
             code: "TIMEOUT",
           });
         } else {
@@ -74,9 +76,6 @@ function formatTime(iso: string | null): string {
   }
 }
 
-/**
- * Compact single-screen attendance controls for the PWA hub.
- */
 export function CheckInForm() {
   const { data: session, status: authStatus } = useSession();
   const [today, setToday] = useState<TodayState | null>(null);
@@ -146,14 +145,16 @@ export function CheckInForm() {
 
     setStatus({
       kind: "requesting_location",
-      message: "Allow location to continue…",
+      message: "Please allow location access to continue…",
     });
 
     const gpsResult = await requestGps();
     if (!gpsResult || "error" in gpsResult) {
       setStatus({
         kind: "error",
-        message: gpsResult?.error || "Location access is required.",
+        message:
+          gpsResult?.error ||
+          "Location access is required to check in or out.",
       });
       setBusy(false);
       setAction(null);
@@ -163,7 +164,9 @@ export function CheckInForm() {
     setStatus({
       kind: "locating",
       message:
-        nextAction === "check_in" ? "Checking you in…" : "Checking you out…",
+        nextAction === "check_in"
+          ? "Location allowed. Checking you in…"
+          : "Location allowed. Checking you out…",
     });
 
     try {
@@ -220,128 +223,129 @@ export function CheckInForm() {
 
   if (authStatus === "loading") {
     return (
-      <div className="card flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm text-slate-600">
-        <Spinner size={14} className="text-brand-600" />
-        Loading status…
+      <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-5 text-center text-slate-600">
+        <span className="inline-flex items-center gap-2">
+          <Spinner size={16} className="text-brand-600" />
+          Loading your attendance status…
+        </span>
       </div>
     );
   }
 
   if (authStatus !== "authenticated") {
-    return null;
+    return <SignInPanel />;
   }
 
-  const workerName =
-    today?.workerName || session?.user?.name || session?.user?.email || "there";
+  const workerName = today?.workerName || session?.user?.name || session?.user?.email || "there";
   const officeLabel = today?.officeCity
     ? `${today.officeName}, ${today.officeCity}`
     : today?.officeName || "the office";
 
-  const statusBusy =
-    status.kind === "locating" || status.kind === "requesting_location";
-
-  const statusLine = (() => {
-    if (!today) return "Loading today’s status…";
-    if (today.checkedIn && !today.checkedOut) {
-      return `In ${formatTime(today.checkInAt)} · ${officeLabel}`;
-    }
-    if (today.checkedIn && today.checkedOut) {
-      return `Done · In ${formatTime(today.checkInAt)} → Out ${formatTime(today.checkOutAt)}`;
-    }
-    return `Not checked in · ${officeLabel}`;
-  })();
+  const statusBusy = status.kind === "locating" || status.kind === "requesting_location";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="card rounded-2xl p-3">
+    <div className="mx-auto w-full max-w-md space-y-4">
+      <InstallAppPrompt />
+
+      <div className="card mt-4 space-y-4 rounded-3xl p-5">
         <UserBadge />
-        <p className="mt-1 truncate text-xs text-slate-500">
-          {session?.user?.email}
+        <p className="text-sm text-slate-600">
+          Signed in as <strong className="text-brand-800">{session?.user?.email}</strong>
         </p>
       </div>
 
-      <div className="card flex min-h-0 flex-1 flex-col justify-between rounded-2xl p-3">
-        <div className="space-y-2">
-          <p className="truncate text-sm font-semibold text-slate-800">
-            Hi, {workerName.split(" ")[0]}
-          </p>
-          <div className="rounded-xl bg-brand-50 px-2.5 py-2 text-xs text-brand-900 ring-1 ring-brand-100">
-            <p className="truncate font-medium">{statusLine}</p>
-            {loadingToday && (
-              <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-brand-800">
-                <Spinner size={10} className="text-brand-600" />
-                Refreshing…
-              </p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={busy || today?.checkedIn === true}
-              aria-busy={busy && action === "check_in"}
-              onClick={() => submit("check_in")}
-              className="btn-primary inline-flex items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-sm font-semibold"
-            >
-              {busy && action === "check_in" ? (
-                <>
-                  <Spinner size={14} className="text-white" />
-                  Working…
-                </>
-              ) : (
-                "Check In"
-              )}
-            </button>
-            <button
-              type="button"
-              disabled={busy || !today?.checkedIn || today?.checkedOut === true}
-              aria-busy={busy && action === "check_out"}
-              onClick={() => submit("check_out")}
-              className="btn-secondary inline-flex items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-sm font-semibold"
-            >
-              {busy && action === "check_out" ? (
-                <>
-                  <Spinner size={14} className="text-brand-600" />
-                  Working…
-                </>
-              ) : (
-                "Check Out"
-              )}
-            </button>
-          </div>
+      <div className="card mt-4 space-y-4 rounded-3xl p-5">
+        <div className="rounded-2xl bg-brand-50 p-4 text-sm text-brand-900 ring-1 ring-brand-100">
+          <p className="font-semibold">Office</p>
+          <p className="mt-0.5 text-brand-800">{officeLabel}</p>
+          {today && (
+            <p className="mt-1 text-xs text-brand-800/90">
+              {today.checkedIn && !today.checkedOut
+                ? `Checked in at ${formatTime(today.checkInAt)}`
+                : today.checkedIn && today.checkedOut
+                  ? `In ${formatTime(today.checkInAt)} → Out ${formatTime(today.checkOutAt)}`
+                  : "Not checked in yet today"}
+            </p>
+          )}
+          {loadingToday && (
+            <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-brand-800">
+              <Spinner size={12} className="text-brand-600" />
+              Refreshing status…
+            </p>
+          )}
         </div>
 
-        {status.message && (
-          <div
-            className={`mt-2 max-h-16 overflow-hidden rounded-xl border px-2.5 py-2 text-xs ${
-              status.kind === "success"
-                ? "border-brand-200 bg-brand-50 text-brand-900"
-                : status.kind === "error"
-                  ? "border-red-200 bg-red-50 text-red-800"
-                  : "border-brand-100 bg-white text-slate-700"
-            }`}
-            role="status"
-            aria-live="polite"
+        <p className="text-sm leading-relaxed text-slate-600">
+          Hi <strong className="text-slate-800">{workerName}</strong>. Location access
+          is required for every check-in and check-out.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          <button
+            type="button"
+            disabled={busy || today?.checkedIn === true}
+            aria-busy={busy && action === "check_in"}
+            onClick={() => submit("check_in")}
+            className="btn-primary inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-base font-semibold"
           >
-            <p className="inline-flex items-start gap-1.5">
-              {statusBusy && (
-                <Spinner size={12} className="mt-0.5 shrink-0 text-brand-600" />
-              )}
-              <span className="line-clamp-2">{status.message}</span>
-            </p>
-            {status.kind === "success" &&
-              status.distance !== null &&
-              status.distance !== undefined && (
-                <p className="mt-0.5 text-[11px] text-brand-800">
-                  {Math.round(status.distance)}m from office
-                  {status.method
-                    ? ` · ${status.method === "office_ip" ? "office Wi-Fi" : "GPS"}`
-                    : ""}
-                </p>
-              )}
-          </div>
-        )}
+            {busy && action === "check_in" ? (
+              <>
+                <Spinner size={16} className="text-white" />
+                Working…
+              </>
+            ) : (
+              "Check In"
+            )}
+          </button>
+          <button
+            type="button"
+            disabled={busy || !today?.checkedIn || today?.checkedOut === true}
+            aria-busy={busy && action === "check_out"}
+            onClick={() => submit("check_out")}
+            className="btn-secondary inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-base font-semibold"
+          >
+            {busy && action === "check_out" ? (
+              <>
+                <Spinner size={16} className="text-brand-600" />
+                Working…
+              </>
+            ) : (
+              "Check Out"
+            )}
+          </button>
+        </div>
       </div>
+
+      {status.message && (
+        <div
+          className={`mt-4 rounded-2xl border p-4 text-sm ${
+            status.kind === "success"
+              ? "border-brand-200 bg-brand-50 text-brand-900"
+              : status.kind === "error"
+                ? "border-red-200 bg-red-50 text-red-800"
+                : "border-brand-100 bg-white text-slate-700"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <p
+            className={`inline-flex items-start gap-2 ${
+              status.kind === "success" ? "text-base font-semibold" : ""
+            }`}
+          >
+            {statusBusy && <Spinner size={14} className="mt-0.5 shrink-0 text-brand-600" />}
+            <span>{status.message}</span>
+          </p>
+          {status.kind === "success" &&
+            status.distance !== null &&
+            status.distance !== undefined && (
+              <p className="mt-1 text-xs text-brand-800">
+                {Math.round(status.distance)}m from office
+                {status.method ? ` · verified via ${status.method === "office_ip" ? "office Wi-Fi" : "GPS"}` : ""}
+              </p>
+            )}
+        </div>
+      )}
     </div>
   );
 }
