@@ -33,7 +33,10 @@ export async function requireAdmin(): Promise<SessionUser | Response> {
     return Response.json(
       {
         error: "FORBIDDEN",
-        message: "Admin access required",
+        message:
+          "Admin access required. Sign in with a Google account listed in ADMIN_EMAILS.",
+        // Signed-in email only (not the allowlist) so ops can fix the mismatch.
+        signedInAs: user.email,
       },
       { status: 403 },
     );

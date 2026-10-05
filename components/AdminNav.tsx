@@ -11,6 +11,7 @@ export function AdminNav() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [signedInEmail, setSignedInEmail] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -18,10 +19,18 @@ export function AdminNav() {
       try {
         const res = await fetch("/api/auth/session", { credentials: "include" });
         if (cancelled) return;
-        const data = (await res.json()) as { isAdmin?: boolean; authenticated?: boolean };
+        const data = (await res.json()) as {
+          isAdmin?: boolean;
+          authenticated?: boolean;
+          user?: { email?: string | null };
+        };
+        setSignedInEmail(data.user?.email ?? null);
         setIsAdmin(Boolean(data.authenticated && data.isAdmin));
       } catch {
-        if (!cancelled) setIsAdmin(false);
+        if (!cancelled) {
+          setSignedInEmail(null);
+          setIsAdmin(false);
+        }
       }
     }
     check();
@@ -40,15 +49,47 @@ export function AdminNav() {
   }
 
   if (!isAdmin) {
+    const email = signedInEmail || session?.user?.email || null;
     return (
-      <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <p className="font-semibold">Admin sign-in required</p>
-        <p className="mt-1">
-          Use a Google account listed in <code>ADMIN_EMAILS</code>.
-        </p>
-        <div className="mt-3 max-w-xs">
-          <GoogleSignInButton label="Sign in with Google" />
+      <div className="mb-6 space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <p className="font-semibold">Admin access required</p>
+        {email ? (
+          <>
+            <p>
+              You are signed in as{" "}
+              <strong className="break-all">{email}</strong>, but that email is
+              not in <code>ADMIN_EMAILS</code> on Vercel.
+            </p>
+            <p>
+              Add <strong className="break-all">{email}</strong> to{" "}
+              <code>ADMIN_EMAILS</code> (comma-separated, no spaces around
+              commas), save, <strong>Redeploy</strong>, then sign out and sign
+              in again with the same Google account.
+            </p>
+          </>
+        ) : (
+          <p>
+            Sign in with the Google account listed in{" "}
+            <code>ADMIN_EMAILS</code> on Vercel.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <div className="max-w-xs flex-1">
+            <GoogleSignInButton label="Sign in with Google" />
+          </div>
         </div>
+        <p className="text-xs text-amber-800">
+          Safe check:{" "}
+          <a
+            className="underline"
+            href="/api/auth/session"
+            target="_blank"
+            rel="noreferrer"
+          >
+            /api/auth/session
+          </a>{" "}
+          shows <code>isAdmin</code> for the signed-in cookie (no secrets).
+        </p>
       </div>
     );
   }
