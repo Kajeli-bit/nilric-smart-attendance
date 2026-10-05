@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { auth, getAuthConfigIssues } from "@/lib/auth";
 import { isAdminEmail } from "@/lib/env";
-import { UserBadge } from "@/components/AuthButtons";
 import { BrandHeader } from "@/components/BrandHeader";
 import { SignInPanel } from "@/components/SignInPanel";
 import { SetupRequiredPanel } from "@/components/SetupRequiredPanel";
-import { InstallAppPrompt } from "@/components/InstallAppPrompt";
+import { CheckInForm } from "@/components/CheckInForm";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
   title: "Nilric Smart Attendance",
@@ -45,80 +45,43 @@ export default async function HomePage() {
   const { email, isAdmin, setupIssues } = await readSessionEmail();
 
   if (setupIssues.length > 0) {
-    return <SetupRequiredPanel issues={setupIssues} />;
+    return (
+      <div className="app-shell app-shell-scroll">
+        <SetupRequiredPanel issues={setupIssues} />
+      </div>
+    );
   }
 
   if (!email) {
     return (
-      <main className="flex min-h-[80vh] items-center justify-center py-8">
+      <div className="app-shell">
         <SignInPanel />
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-md py-4">
+    <div className="app-shell">
       <BrandHeader
         title="Nilric Smart Attendance"
-        subtitle={
-          isAdmin
-            ? "You have admin access. Check in or open the admin panel."
-            : "Sign in with Google, then check in from your phone."
-        }
+        subtitle={isAdmin ? "Admin + check-in" : "Check in with location"}
       />
-      <InstallAppPrompt />
 
-      <div className="card mt-2 space-y-5 rounded-3xl p-6">
-        <UserBadge />
+      <CheckInForm />
 
-        <div className="rounded-2xl bg-brand-50 p-4 text-sm text-brand-900 ring-1 ring-brand-100">
-          <p className="font-semibold">
-            {isAdmin ? "Admin account" : "Worker account"}
-          </p>
-          <p className="mt-1 break-all text-brand-800">{email}</p>
-          <p className="mt-2 text-xs leading-relaxed text-brand-800/90">
-            Location access is required for every check-in and check-out.
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <Link
-            href="/check-in"
-            className="btn-primary flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-center font-semibold"
-          >
-            Open Check-In
-          </Link>
-
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="btn-secondary flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-center font-semibold"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M4 7h16M4 12h16M4 17h10"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              Open Admin Panel
-            </Link>
-          )}
-        </div>
-
+      <div className="mt-2 shrink-0 space-y-2 pb-1">
         {isAdmin && (
-          <p className="text-center text-xs text-slate-500">
-            Admin pages: Overview · Workers · Reports
-          </p>
+          <Link
+            href="/admin"
+            className="btn-secondary flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold"
+          >
+            Open Admin Panel
+          </Link>
         )}
+        <p className="text-center text-[10px] text-slate-400">
+          GPS required · {email}
+        </p>
       </div>
-    </main>
+    </div>
   );
 }

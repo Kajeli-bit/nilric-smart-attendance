@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth, getAuthConfigIssues } from "@/lib/auth";
 import { isAdminEmail } from "@/lib/env";
-import { CheckInForm } from "@/components/CheckInForm";
-import { SignInPanel } from "@/components/SignInPanel";
 import { BrandHeader } from "@/components/BrandHeader";
+import { SignInPanel } from "@/components/SignInPanel";
 import { SetupRequiredPanel } from "@/components/SetupRequiredPanel";
+import { CheckInForm } from "@/components/CheckInForm";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Check In",
 };
 
-// Session cookie must be read per request so the installed PWA always sees
-// the correct signed-in / signed-out UI (no stale client session gate).
 export const dynamic = "force-dynamic";
 
 async function readSessionEmail(): Promise<{
@@ -42,38 +41,46 @@ async function readSessionEmail(): Promise<{
   }
 }
 
+/** PWA-friendly: same single-screen hub as `/` (no scroll). */
 export default async function CheckInPage() {
   const { email, isAdmin, setupIssues } = await readSessionEmail();
 
   if (setupIssues.length > 0) {
-    return <SetupRequiredPanel issues={setupIssues} title="Check-in setup required" />;
+    return (
+      <div className="app-shell app-shell-scroll">
+        <SetupRequiredPanel issues={setupIssues} title="Check-in setup required" />
+      </div>
+    );
   }
 
   if (!email) {
     return (
-      <main className="flex min-h-[80vh] items-center justify-center py-8">
+      <div className="app-shell">
         <SignInPanel />
-      </main>
+      </div>
     );
   }
 
+  // Keep PWA users on one screen — same hub as home.
+  if (!isAdmin) {
+    redirect("/");
+  }
+
   return (
-    <main className="mx-auto w-full max-w-md py-4">
+    <div className="app-shell">
       <BrandHeader
         title="Worker Attendance"
         subtitle="Google sign-in · location required"
       />
-      {isAdmin && (
-        <div className="mb-4 flex justify-center">
-          <Link
-            href="/admin"
-            className="btn-secondary rounded-xl px-4 py-2 text-sm font-semibold"
-          >
-            Open Admin Panel
-          </Link>
-        </div>
-      )}
       <CheckInForm />
-    </main>
+      <div className="mt-2 shrink-0 pb-1">
+        <Link
+          href="/admin"
+          className="btn-secondary flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold"
+        >
+          Open Admin Panel
+        </Link>
+      </div>
+    </div>
   );
 }

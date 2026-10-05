@@ -20,6 +20,11 @@
   --foreground: #1e1b2e;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   background:
     radial-gradient(1200px 600px at 50% -120px, #ebe3ff 0%, transparent 55%),
@@ -28,6 +33,24 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
     sans-serif;
   -webkit-font-smoothing: antialiased;
+  margin: 0;
+}
+
+/*
+ * Worker PWA shell: fit content on one screen, no page scroll.
+ * Admin pages can opt out by not using .app-shell.
+ */
+.app-shell {
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell-scroll {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Soft brand glow used behind logo / hero areas */
@@ -78,4 +101,10 @@ body {
 .btn-secondary:hover:not(:disabled) {
   background: #f7f3ff;
   border-color: #c9aef5;
+}
+
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior: none;
+  }
 }
