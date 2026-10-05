@@ -39,6 +39,6 @@ export async function GET() {
         ((hasAuthGoogleId && hasAuthGoogleSecret) ||
           (hasGoogleClientId && hasGoogleClientSecret)),
     ),
-    note: "Values are intentionally not returned. Fix missing keys in Netlify Environment variables, then redeploy.",
+    note: "Values are intentionally not returned. Fix missing keys in Vercel Environment variables, then redeploy.",
   });
 }

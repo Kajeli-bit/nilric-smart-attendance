@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import { auth, getAuthConfigIssues } from "@/lib/auth";
 import { UserBadge } from "@/components/AuthButtons";
 import { BrandHeader } from "@/components/BrandHeader";
 import { SignInPanel } from "@/components/SignInPanel";
+import { SetupRequiredPanel } from "@/components/SetupRequiredPanel";
 import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 
 export const metadata: Metadata = {
@@ -12,12 +13,35 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
-  const session = await auth();
-  const email = session?.user?.email?.trim().toLowerCase() ?? null;
-  const signedIn = Boolean(email);
+async function readSessionEmail(): Promise<{ email: string | null; setupIssues: string[] }> {
+  try {
+    const session = await auth();
+    return {
+      email: session?.user?.email?.trim().toLowerCase() ?? null,
+      setupIssues: [],
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const setupIssues = getAuthConfigIssues();
+    if (
+      setupIssues.length > 0 ||
+      /AUTH_|Auth configuration|server configuration|MissingSecret/i.test(message)
+    ) {
+      return { email: null, setupIssues };
+    }
+    console.error("home auth error", err);
+    return { email: null, setupIssues };
+  }
+}
 
-  if (!signedIn) {
+export default async function HomePage() {
+  const { email, setupIssues } = await readSessionEmail();
+
+  if (setupIssues.length > 0) {
+    return <SetupRequiredPanel issues={setupIssues} />;
+  }
+
+  if (!email) {
     return (
       <main className="flex min-h-[80vh] items-center justify-center py-8">
         <SignInPanel />
