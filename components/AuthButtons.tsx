@@ -18,7 +18,7 @@ export function GoogleSignInButton({
     try {
       // Full-page OAuth redirect works more reliably inside an installed PWA
       // than a popup / partial navigation.
-      await signIn("google", { callbackUrl: "/check-in", redirect: true });
+      await signIn("google", { callbackUrl: "/", redirect: true });
     } catch {
       // Navigation away is expected; keep UI responsive if it fails locally.
       setBusy(false);

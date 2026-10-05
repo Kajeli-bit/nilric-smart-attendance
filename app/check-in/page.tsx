@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { auth, getAuthConfigIssues } from "@/lib/auth";
+import { isAdminEmail } from "@/lib/env";
 import { CheckInForm } from "@/components/CheckInForm";
 import { SignInPanel } from "@/components/SignInPanel";
 import { BrandHeader } from "@/components/BrandHeader";
@@ -13,11 +15,17 @@ export const metadata: Metadata = {
 // the correct signed-in / signed-out UI (no stale client session gate).
 export const dynamic = "force-dynamic";
 
-async function readSessionEmail(): Promise<{ email: string | null; setupIssues: string[] }> {
+async function readSessionEmail(): Promise<{
+  email: string | null;
+  isAdmin: boolean;
+  setupIssues: string[];
+}> {
   try {
     const session = await auth();
+    const email = session?.user?.email?.trim().toLowerCase() ?? null;
     return {
-      email: session?.user?.email?.trim().toLowerCase() ?? null,
+      email,
+      isAdmin: email ? isAdminEmail(email) : false,
       setupIssues: [],
     };
   } catch (err) {
@@ -27,15 +35,15 @@ async function readSessionEmail(): Promise<{ email: string | null; setupIssues: 
       setupIssues.length > 0 ||
       /AUTH_|Auth configuration|server configuration|MissingSecret/i.test(message)
     ) {
-      return { email: null, setupIssues };
+      return { email: null, isAdmin: false, setupIssues };
     }
     console.error("check-in auth error", err);
-    return { email: null, setupIssues };
+    return { email: null, isAdmin: false, setupIssues };
   }
 }
 
 export default async function CheckInPage() {
-  const { email, setupIssues } = await readSessionEmail();
+  const { email, isAdmin, setupIssues } = await readSessionEmail();
 
   if (setupIssues.length > 0) {
     return <SetupRequiredPanel issues={setupIssues} title="Check-in setup required" />;
@@ -55,6 +63,16 @@ export default async function CheckInPage() {
         title="Worker Attendance"
         subtitle="Google sign-in · location required"
       />
+      {isAdmin && (
+        <div className="mb-4 flex justify-center">
+          <Link
+            href="/admin"
+            className="btn-secondary rounded-xl px-4 py-2 text-sm font-semibold"
+          >
+            Open Admin Panel
+          </Link>
+        </div>
+      )}
       <CheckInForm />
     </main>
   );
