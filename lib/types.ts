@@ -1,10 +1,32 @@
-export type VerificationMethod = "office_ip" | "gps";
+export type VerificationMethod = "office_ip" | "gps" | "site_gps";
 
 export type AttendanceEventType = "check_in" | "check_out";
 
 export interface GpsCoords {
   lat: number;
   lng: number;
+}
+
+export interface Site {
+  id: string;
+  name: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+  radius_m: number;
+  active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SiteInput {
+  name: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+  radiusM: number;
+  active: boolean;
 }
 
 export interface Worker {
@@ -33,6 +55,7 @@ export interface AttendanceDay {
   check_out_lat: number | null;
   check_out_lng: number | null;
   check_out_distance_m: number | null;
+  site_id?: string | null;
 }
 
 export interface VerificationSuccess {
@@ -41,11 +64,14 @@ export interface VerificationSuccess {
   distanceM: number | null;
   lat: number | null;
   lng: number | null;
+  siteId?: string | null;
+  siteName?: string | null;
 }
 
 export interface VerificationFailure {
   ok: false;
   reason: string;
+  errorCode?: string;
 }
 
 export type VerificationResult = VerificationSuccess | VerificationFailure;
@@ -82,6 +108,10 @@ export interface AttendanceActionBody {
     name: string;
     city: string;
   };
+  site?: {
+    id: string;
+    name: string;
+  } | null;
   attendance: {
     attendanceDay: string;
     at: string;
@@ -102,6 +132,10 @@ export interface TodayStatusBody {
     name: string;
     city: string;
   };
+  site?: {
+    id: string;
+    name: string;
+  } | null;
   attendanceDay: string;
   checkedIn: boolean;
   checkedOut: boolean;

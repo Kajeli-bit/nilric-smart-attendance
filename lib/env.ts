@@ -73,7 +73,10 @@ export function getGoogleConfig() {
   };
 }
 
-export function welcomeMessage(name: string): string {
+export function welcomeMessage(name: string, placeOverride?: string | null): string {
+  if (placeOverride?.trim()) {
+    return `Welcome to ${placeOverride.trim()}, ${name}!`;
+  }
   const office = getOfficeConfig();
   const place = office.city ? `${office.name}, ${office.city}` : office.name;
   return `Welcome to ${place}, ${name}!`;
@@ -83,7 +86,8 @@ export function goodbyeMessage(name: string): string {
   return `Goodbye ${name} — have a safe journey!`;
 }
 
-export function formatOfficeLabel(): string {
+export function formatOfficeLabel(placeOverride?: string | null): string {
+  if (placeOverride?.trim()) return placeOverride.trim();
   const office = getOfficeConfig();
   return office.city ? `${office.name}, ${office.city}` : office.name;
 }

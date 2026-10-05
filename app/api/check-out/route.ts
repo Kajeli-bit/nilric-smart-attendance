@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { requireWorker, isResponse } from "@/lib/session";
 import { getOfficeConfig, goodbyeMessage } from "@/lib/env";
-import { getClientIp, parseGps, verifyAttendance } from "@/lib/verification";
+import {
+  getClientIp,
+  parseGps,
+  parseSiteId,
+  verifyAttendance,
+} from "@/lib/verification";
 import {
   getDb,
   findWorkerByEmail,
   getTodayAttendance,
 } from "@/lib/workers";
+import { getActiveSiteById } from "@/lib/sites";
 import { dbErrorResponse } from "@/lib/db-errors";
 import type { AttendanceActionBody, VerificationMethod } from "@/lib/types";
 
@@ -24,6 +30,7 @@ export async function POST(request: Request) {
 
     const body = (await request.json().catch(() => ({}))) as {
       gps?: unknown;
+      siteId?: unknown;
     };
 
     const gps = parseGps(body.gps);
@@ -34,17 +41,6 @@ export async function POST(request: Request) {
         "Location access is required to check out. Allow location and try again.",
       );
     }
-
-    const clientIp = getClientIp(request.headers);
-    const verification = verifyAttendance(clientIp, gps);
-    if (!verification.ok) {
-      return errorJson(422, "NOT_VERIFIED", verification.reason);
-    }
-
-    const method: VerificationMethod = verification.method;
-    const office = getOfficeConfig();
-    const db = getDb();
-    const occurredAt = new Date().toISOString();
 
     const worker = await findWorkerByEmail(user.email);
     if (!worker) {
@@ -77,6 +73,48 @@ export async function POST(request: Request) {
       );
     }
 
+    // Prefer explicit selection; otherwise reuse site from today's check-in
+    const selectedSiteId = parseSiteId(body.siteId);
+    const priorSiteId = day.site_id ?? null;
+    const requestSiteId = selectedSiteId ?? priorSiteId;
+
+    let siteName: string | null = null;
+    if (requestSiteId) {
+      const site = await getActiveSiteById(requestSiteId);
+      if (!site) {
+        return errorJson(
+          422,
+          "SITE_UNAVAILABLE",
+          "Selected site is unavailable. Choose HQ or another active site.",
+        );
+      }
+      siteName = site.name;
+    }
+
+    const clientIp = getClientIp(request.headers);
+    const verification = await verifyAttendance(
+      clientIp,
+      gps,
+      getOfficeConfig(),
+      requestSiteId,
+    );
+    if (!verification.ok) {
+      return errorJson(
+        422,
+        verification.errorCode === "SITE_UNAVAILABLE"
+          ? "SITE_UNAVAILABLE"
+          : "NOT_VERIFIED",
+        verification.reason,
+      );
+    }
+
+    const method: VerificationMethod = verification.method;
+    const office = getOfficeConfig();
+    const db = getDb();
+    const occurredAt = new Date().toISOString();
+    const siteId = verification.siteId ?? requestSiteId ?? null;
+    if (!siteName && verification.siteName) siteName = verification.siteName;
+
     const updated = await db.sql<{ check_out_at: string }>`
       UPDATE attendance_days
       SET check_out_at = ${occurredAt}::timestamptz,
@@ -85,6 +123,7 @@ export async function POST(request: Request) {
           check_out_lat = ${verification.lat},
           check_out_lng = ${verification.lng},
           check_out_distance_m = ${verification.distanceM},
+          site_id = ${siteId},
           updated_at = NOW()
       WHERE id = ${day.id} AND check_out_at IS NULL
       RETURNING check_out_at
@@ -108,7 +147,8 @@ export async function POST(request: Request) {
         client_ip,
         lat,
         lng,
-        distance_m
+        distance_m,
+        site_id
       ) VALUES (
         ${day.id},
         ${worker.id},
@@ -118,7 +158,8 @@ export async function POST(request: Request) {
         ${clientIp},
         ${verification.lat},
         ${verification.lng},
-        ${verification.distanceM}
+        ${verification.distanceM},
+        ${siteId}
       )
     `;
 
@@ -134,6 +175,7 @@ export async function POST(request: Request) {
         name: office.name,
         city: office.city,
       },
+      site: siteId && siteName ? { id: siteId, name: siteName } : null,
       attendance: {
         attendanceDay,
         at: occurredAt,

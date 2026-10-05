@@ -97,6 +97,7 @@ export function AdminNav() {
   const items = [
     { href: "/admin", label: "Overview" },
     { href: "/admin/workers", label: "Workers" },
+    { href: "/admin/sites", label: "Sites" },
     { href: "/admin/reports", label: "Reports" },
   ];
 

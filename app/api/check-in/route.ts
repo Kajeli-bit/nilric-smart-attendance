@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { requireWorker, isResponse } from "@/lib/session";
 import { getOfficeConfig, welcomeMessage } from "@/lib/env";
-import { getClientIp, parseGps, verifyAttendance } from "@/lib/verification";
+import {
+  getClientIp,
+  parseGps,
+  parseSiteId,
+  verifyAttendance,
+} from "@/lib/verification";
 import {
   getDb,
   getTodayAttendance,
   upsertWorkerByEmail,
 } from "@/lib/workers";
+import { getActiveSiteById } from "@/lib/sites";
 import { dbErrorResponse } from "@/lib/db-errors";
 import type { AttendanceActionBody, VerificationMethod } from "@/lib/types";
 
@@ -24,6 +30,7 @@ export async function POST(request: Request) {
 
     const body = (await request.json().catch(() => ({}))) as {
       gps?: unknown;
+      siteId?: unknown;
     };
 
     const gps = parseGps(body.gps);
@@ -35,16 +42,39 @@ export async function POST(request: Request) {
       );
     }
 
+    const siteId = parseSiteId(body.siteId);
+    let siteName: string | null = null;
+    if (siteId) {
+      const site = await getActiveSiteById(siteId);
+      if (!site) {
+        return errorJson(
+          422,
+          "SITE_UNAVAILABLE",
+          "Selected site is unavailable. Choose HQ or another active site.",
+        );
+      }
+      siteName = site.name;
+    }
+
     const clientIp = getClientIp(request.headers);
-    const verification = verifyAttendance(clientIp, gps);
+    const verification = await verifyAttendance(clientIp, gps, getOfficeConfig(), siteId);
     if (!verification.ok) {
-      return errorJson(422, "NOT_VERIFIED", verification.reason);
+      const status = verification.errorCode === "SITE_UNAVAILABLE" ? 422 : 422;
+      return errorJson(
+        status,
+        verification.errorCode === "SITE_UNAVAILABLE"
+          ? "SITE_UNAVAILABLE"
+          : "NOT_VERIFIED",
+        verification.reason,
+      );
     }
 
     const method: VerificationMethod = verification.method;
     const office = getOfficeConfig();
     const db = getDb();
     const occurredAt = new Date().toISOString();
+    const resolvedSiteId = verification.siteId ?? siteId ?? null;
+    if (!siteName && verification.siteName) siteName = verification.siteName;
 
     const worker = await upsertWorkerByEmail(user.email, user.name);
     if (!worker.active) {
@@ -81,7 +111,8 @@ export async function POST(request: Request) {
           check_in_ip,
           check_in_lat,
           check_in_lng,
-          check_in_distance_m
+          check_in_distance_m,
+          site_id
         ) VALUES (
           ${worker.id},
           ${attendanceDay}::date,
@@ -90,7 +121,8 @@ export async function POST(request: Request) {
           ${clientIp},
           ${verification.lat},
           ${verification.lng},
-          ${verification.distanceM}
+          ${verification.distanceM},
+          ${resolvedSiteId}
         )
         ON CONFLICT (worker_id, attendance_day) DO NOTHING
         RETURNING id
@@ -113,6 +145,7 @@ export async function POST(request: Request) {
             check_in_lat = ${verification.lat},
             check_in_lng = ${verification.lng},
             check_in_distance_m = ${verification.distanceM},
+            site_id = ${resolvedSiteId},
             updated_at = NOW()
         WHERE id = ${attendanceId}
       `;
@@ -128,7 +161,8 @@ export async function POST(request: Request) {
         client_ip,
         lat,
         lng,
-        distance_m
+        distance_m,
+        site_id
       ) VALUES (
         ${attendanceId},
         ${worker.id},
@@ -138,7 +172,8 @@ export async function POST(request: Request) {
         ${clientIp},
         ${verification.lat},
         ${verification.lng},
-        ${verification.distanceM}
+        ${verification.distanceM},
+        ${resolvedSiteId}
       )
     `;
 
@@ -154,6 +189,9 @@ export async function POST(request: Request) {
         name: office.name,
         city: office.city,
       },
+      site: resolvedSiteId && siteName
+        ? { id: resolvedSiteId, name: siteName }
+        : null,
       attendance: {
         attendanceDay,
         at: occurredAt,
@@ -163,7 +201,7 @@ export async function POST(request: Request) {
             ? null
             : Math.round(verification.distanceM),
       },
-      message: welcomeMessage(worker.name),
+      message: welcomeMessage(worker.name, siteName),
     };
 
     return NextResponse.json(responseBody, { status: 201 });

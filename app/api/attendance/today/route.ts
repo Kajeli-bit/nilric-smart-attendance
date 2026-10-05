@@ -6,6 +6,7 @@ import {
   getTodayAttendance,
   upsertWorkerByEmail,
 } from "@/lib/workers";
+import { getSiteById } from "@/lib/sites";
 import { dbErrorResponse } from "@/lib/db-errors";
 import type { TodayStatusBody } from "@/lib/types";
 
@@ -20,7 +21,6 @@ export async function GET() {
     const office = getOfficeConfig();
     let worker = await findWorkerByEmail(user.email);
     if (!worker) {
-      // Provision worker record on first authenticated visit
       worker = await upsertWorkerByEmail(user.email, user.name);
     }
 
@@ -28,11 +28,25 @@ export async function GET() {
     const checkedIn = Boolean(row?.check_in_at);
     const checkedOut = Boolean(row?.check_out_at);
 
+    let site: { id: string; name: string } | null = null;
+    if (row?.site_id) {
+      const siteRow = await getSiteById(row.site_id);
+      if (siteRow) {
+        site = { id: siteRow.id, name: siteRow.name };
+      }
+    }
+
+    const placeLabel = site?.name
+      ? site.name
+      : office.city
+        ? `${office.name}, ${office.city}`
+        : office.name;
+
     let message: string | null = null;
     if (checkedIn && !checkedOut) {
-      message = `You are checked in at ${office.name}.`;
+      message = `You are checked in at ${placeLabel}.`;
     } else if (checkedIn && checkedOut) {
-      message = `Today's attendance is complete at ${office.name}.`;
+      message = `Today's attendance is complete at ${placeLabel}.`;
     }
 
     const responseBody: TodayStatusBody = {
@@ -46,6 +60,7 @@ export async function GET() {
         name: office.name,
         city: office.city,
       },
+      site,
       attendanceDay: day,
       checkedIn,
       checkedOut,

@@ -100,8 +100,9 @@ export async function getTodayAttendance(workerId: string) {
     check_out_at: string | null;
     check_in_method: string | null;
     check_out_method: string | null;
+    site_id: string | null;
   }>`
-    SELECT id, attendance_day, check_in_at, check_out_at, check_in_method, check_out_method
+    SELECT id, attendance_day, check_in_at, check_out_at, check_in_method, check_out_method, site_id
     FROM attendance_days
     WHERE worker_id = ${workerId} AND attendance_day = ${day}::date
   `;

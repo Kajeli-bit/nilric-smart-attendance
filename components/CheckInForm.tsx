@@ -6,6 +6,7 @@ import type { GpsCoords } from "@/lib/types";
 import { UserBadge } from "@/components/AuthButtons";
 import { SignInPanel } from "@/components/SignInPanel";
 import { InstallAppPrompt } from "@/components/InstallAppPrompt";
+import { SitePicker, type WorkerSiteOption } from "@/components/SitePicker";
 import { Spinner } from "@/components/Spinner";
 
 type StatusKind = "idle" | "locating" | "requesting_location" | "success" | "error";
@@ -15,6 +16,7 @@ interface StatusState {
   message: string;
   method?: string;
   distance?: number | null;
+  siteName?: string | null;
 }
 
 interface TodayState {
@@ -25,6 +27,7 @@ interface TodayState {
   officeName: string;
   officeCity: string;
   workerName: string;
+  siteName?: string | null;
 }
 
 function requestGps(): Promise<GpsCoords | { error: string; code?: string } | null> {
@@ -76,6 +79,12 @@ function formatTime(iso: string | null): string {
   }
 }
 
+function methodLabel(method?: string | null): string {
+  if (method === "office_ip") return "office Wi-Fi";
+  if (method === "site_gps") return "site GPS";
+  return "GPS";
+}
+
 export function CheckInForm() {
   const { data: session, status: authStatus } = useSession();
   const [today, setToday] = useState<TodayState | null>(null);
@@ -83,6 +92,25 @@ export function CheckInForm() {
   const [busy, setBusy] = useState(false);
   const [action, setAction] = useState<"check_in" | "check_out" | null>(null);
   const [loadingToday, setLoadingToday] = useState(false);
+  const [sites, setSites] = useState<WorkerSiteOption[]>([]);
+  const [loadingSites, setLoadingSites] = useState(false);
+  const [siteId, setSiteId] = useState("");
+
+  async function loadSites() {
+    setLoadingSites(true);
+    try {
+      const res = await fetch("/api/sites", { credentials: "include" });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        sites?: { id: string; name: string }[];
+      };
+      setSites(data.sites ?? []);
+    } catch {
+      // ignore — HQ path still works
+    } finally {
+      setLoadingSites(false);
+    }
+  }
 
   async function loadToday() {
     setLoadingToday(true);
@@ -105,6 +133,7 @@ export function CheckInForm() {
         checkOutAt: string | null;
         office: { name: string; city: string };
         worker: { name: string };
+        site?: { id: string; name: string } | null;
         message: string | null;
       };
       setToday({
@@ -115,7 +144,11 @@ export function CheckInForm() {
         officeName: data.office.name,
         officeCity: data.office.city,
         workerName: data.worker.name,
+        siteName: data.site?.name ?? null,
       });
+      if (data.site?.id) {
+        setSiteId((prev) => prev || data.site!.id);
+      }
       if (data.message) {
         setStatus({ kind: "success", message: data.message });
       }
@@ -130,7 +163,10 @@ export function CheckInForm() {
     if (authStatus !== "authenticated") return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      if (!cancelled) void loadToday();
+      if (!cancelled) {
+        void loadToday();
+        void loadSites();
+      }
     }, 0);
     return () => {
       cancelled = true;
@@ -161,12 +197,15 @@ export function CheckInForm() {
       return;
     }
 
+    const selectedSite = sites.find((s) => s.id === siteId) || null;
+    const placeHint = selectedSite?.name || "office";
+
     setStatus({
       kind: "locating",
       message:
         nextAction === "check_in"
-          ? "Location allowed. Checking you in…"
-          : "Location allowed. Checking you out…",
+          ? `Location allowed. Checking you in at ${placeHint}…`
+          : `Location allowed. Checking you out from ${placeHint}…`,
     });
 
     try {
@@ -175,7 +214,10 @@ export function CheckInForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ gps: gpsResult }),
+        body: JSON.stringify({
+          gps: gpsResult,
+          siteId: siteId || null,
+        }),
       });
       const data = (await res.json()) as {
         ok?: boolean;
@@ -183,6 +225,7 @@ export function CheckInForm() {
         message?: string;
         office?: { name: string; city: string };
         worker?: { name: string };
+        site?: { id: string; name: string } | null;
         attendance?: {
           method?: string;
           distanceMeters?: number | null;
@@ -199,15 +242,17 @@ export function CheckInForm() {
 
       const method = data.attendance?.method ?? "unknown";
       const dist = data.attendance?.distanceMeters ?? null;
+      const siteName = data.site?.name ?? selectedSite?.name ?? null;
       setStatus({
         kind: "success",
         message:
           data.message ||
           (nextAction === "check_in"
-            ? `Checked in via ${method === "office_ip" ? "office Wi-Fi" : "GPS"}.`
-            : `Checked out via ${method === "office_ip" ? "office Wi-Fi" : "GPS"}.`),
+            ? `Checked in via ${methodLabel(method)}.`
+            : `Checked out via ${methodLabel(method)}.`),
         method,
         distance: dist,
+        siteName,
       });
       await loadToday();
     } catch {
@@ -237,9 +282,12 @@ export function CheckInForm() {
   }
 
   const workerName = today?.workerName || session?.user?.name || session?.user?.email || "there";
-  const officeLabel = today?.officeCity
-    ? `${today.officeName}, ${today.officeCity}`
-    : today?.officeName || "the office";
+  const currentPlace =
+    today?.siteName ||
+    (today?.officeCity
+      ? `${today.officeName}, ${today.officeCity}`
+      : today?.officeName) ||
+    "the office";
 
   const statusBusy = status.kind === "locating" || status.kind === "requesting_location";
 
@@ -256,8 +304,8 @@ export function CheckInForm() {
 
       <div className="card mt-4 space-y-4 rounded-3xl p-5">
         <div className="rounded-2xl bg-brand-50 p-4 text-sm text-brand-900 ring-1 ring-brand-100">
-          <p className="font-semibold">Office</p>
-          <p className="mt-0.5 text-brand-800">{officeLabel}</p>
+          <p className="font-semibold">Today&apos;s location</p>
+          <p className="mt-0.5 text-brand-800">{currentPlace}</p>
           {today && (
             <p className="mt-1 text-xs text-brand-800/90">
               {today.checkedIn && !today.checkedOut
@@ -275,9 +323,18 @@ export function CheckInForm() {
           )}
         </div>
 
+        <SitePicker
+          sites={sites}
+          value={siteId}
+          onChange={setSiteId}
+          disabled={busy || today?.checkedIn === true}
+          loading={loadingSites}
+        />
+
         <p className="text-sm leading-relaxed text-slate-600">
           Hi <strong className="text-slate-800">{workerName}</strong>. Location access
-          is required for every check-in and check-out.
+          is required for every check-in and check-out. Pick{" "}
+          <strong>Head office</strong> or a project site before checking in.
         </p>
 
         <div className="grid grid-cols-2 gap-3 pt-1">
@@ -340,8 +397,8 @@ export function CheckInForm() {
             status.distance !== null &&
             status.distance !== undefined && (
               <p className="mt-1 text-xs text-brand-800">
-                {Math.round(status.distance)}m from office
-                {status.method ? ` · verified via ${status.method === "office_ip" ? "office Wi-Fi" : "GPS"}` : ""}
+                {Math.round(status.distance)}m from {status.siteName || "office"}
+                {status.method ? ` · verified via ${methodLabel(status.method)}` : ""}
               </p>
             )}
         </div>

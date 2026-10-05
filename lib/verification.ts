@@ -1,6 +1,13 @@
 import { haversineMeters } from "@/lib/geo";
 import { getOfficeConfig, type OfficeConfig } from "@/lib/env";
-import type { GpsCoords, VerificationResult } from "@/lib/types";
+import { getActiveSiteById } from "@/lib/sites";
+import type {
+  GpsCoords,
+  Site,
+  VerificationFailure,
+  VerificationResult,
+  VerificationSuccess,
+} from "@/lib/types";
 
 export function getClientIp(headers: Headers): string | null {
   // Vercel
@@ -30,27 +37,75 @@ export function parseGps(value: unknown): GpsCoords | null {
   return { lat, lng };
 }
 
-export function verifyAttendance(
+export function parseSiteId(value: unknown): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+export function verifySiteGeofence(
+  site: Site,
+  gps: GpsCoords,
+): VerificationSuccess | VerificationFailure {
+  const d = haversineMeters(gps.lat, gps.lng, site.lat, site.lng);
+  if (d <= site.radius_m) {
+    return {
+      ok: true,
+      method: "site_gps",
+      distanceM: d,
+      lat: gps.lat,
+      lng: gps.lng,
+      siteId: site.id,
+      siteName: site.name,
+    };
+  }
+  return {
+    ok: false,
+    reason: `You must be inside the geofence for ${site.name} (within ${Math.round(site.radius_m)}m).`,
+  };
+}
+
+export async function verifyAttendance(
   clientIp: string | null,
   gps: GpsCoords | null,
   office: OfficeConfig = getOfficeConfig(),
-): VerificationResult {
-  // Layer 1 — office public IP
-  if (
-    office.publicIp &&
-    clientIp &&
-    clientIp === office.publicIp
-  ) {
+  siteId?: string | null,
+): Promise<VerificationResult> {
+  const trimmedSiteId = siteId?.trim() || null;
+
+  // Remote project site path — no HQ IP shortcut when a site is selected
+  if (trimmedSiteId) {
+    if (!gps) {
+      return {
+        ok: false,
+        reason: `Location access is required to check in at this site.`,
+      };
+    }
+    const site = await getActiveSiteById(trimmedSiteId);
+    if (!site) {
+      return {
+        ok: false,
+        reason: "Selected site is unavailable. Choose HQ or another active site.",
+        errorCode: "SITE_UNAVAILABLE",
+      };
+    }
+    return verifySiteGeofence(site, gps);
+  }
+
+  // HQ default path (unchanged)
+  if (office.publicIp && clientIp && clientIp === office.publicIp) {
     return {
       ok: true,
       method: "office_ip",
       distanceM: null,
       lat: gps?.lat ?? null,
       lng: gps?.lng ?? null,
+      siteId: null,
+      siteName: null,
     };
   }
 
-  // Layer 2 — GPS geofence fallback
   if (
     gps &&
     office.lat !== null &&
@@ -65,12 +120,14 @@ export function verifyAttendance(
         distanceM: d,
         lat: gps.lat,
         lng: gps.lng,
+        siteId: null,
+        siteName: null,
       };
     }
   }
 
   return {
     ok: false,
-    reason: "Must be on office Wi-Fi (IP match) or inside the GPS radius",
+    reason: "Must be on office Wi-Fi (IP match), inside the HQ GPS radius, or at a selected project site",
   };
 }
