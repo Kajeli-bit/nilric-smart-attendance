@@ -49,7 +49,7 @@ export function getAuthUrlHost(): string | null {
  * Lazy NextAuth init. Config factory runs on first request (not at import),
  * so `next build` does not require env vars.
  */
-export const { handlers, auth, signIn, signOut } = NextAuth(async ({ request }) => {
+export const { handlers, auth, signIn, signOut } = NextAuth(async (request) => {
   const secret = requireEnv("AUTH_SECRET", process.env.AUTH_SECRET);
   const googleClientId = requireEnv(
     "AUTH_GOOGLE_ID or GOOGLE_CLIENT_ID",
