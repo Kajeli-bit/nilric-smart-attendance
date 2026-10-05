@@ -6,6 +6,7 @@ import { BrandHeader } from "@/components/BrandHeader";
 import { SignInPanel } from "@/components/SignInPanel";
 import { SetupRequiredPanel } from "@/components/SetupRequiredPanel";
 import { CheckInForm } from "@/components/CheckInForm";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
   title: "Nilric Smart Attendance",
