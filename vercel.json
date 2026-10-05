@@ -4,9 +4,6 @@
   "buildCommand": "npm run build",
   "devCommand": "npm run dev:next",
   "installCommand": "npm install",
-  "env": {
-    "NODE_VERSION": "22"
-  },
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 30
