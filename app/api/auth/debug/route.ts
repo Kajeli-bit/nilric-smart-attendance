@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAuthUrlHost } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
  * Safe Auth.js / Google OAuth diagnostics.
  * Returns presence booleans only — never secret values.
  */
-export async function GET() {
+export async function GET(request: Request) {
   const hasAuthSecret = Boolean(process.env.AUTH_SECRET?.trim());
   const hasAuthGoogleId = Boolean(process.env.AUTH_GOOGLE_ID?.trim());
   const hasAuthGoogleSecret = Boolean(process.env.AUTH_GOOGLE_SECRET?.trim());
@@ -19,10 +20,19 @@ export async function GET() {
     process.env.OFFICE_LAT?.trim() && process.env.OFFICE_LNG?.trim(),
   );
 
+  const requestHost = request.headers.get("host")?.toLowerCase() ?? null;
+  const authUrlHost = getAuthUrlHost();
+  const authUrlMatchesHost =
+    !authUrlHost || !requestHost || authUrlHost === requestHost;
+
+  const readyForGoogleSso = Boolean(
+    hasAuthSecret &&
+      ((hasAuthGoogleId && hasAuthGoogleSecret) ||
+        (hasGoogleClientId && hasGoogleClientSecret)),
+  );
+
   return NextResponse.json({
-    ok:
-      (hasAuthSecret || hasAuthGoogleId || hasGoogleClientId) &&
-      (hasAuthSecret || true),
+    ok: readyForGoogleSso && authUrlMatchesHost,
     checks: {
       hasAuthSecret,
       hasAuthGoogleId,
@@ -32,13 +42,13 @@ export async function GET() {
       hasAuthUrl,
       hasAdminEmails,
       hasOffice,
+      authUrlMatchesHost,
     },
-    // Convenience: ready if secret + any google id/secret pair present
-    readyForGoogleSso: Boolean(
-      hasAuthSecret &&
-        ((hasAuthGoogleId && hasAuthGoogleSecret) ||
-          (hasGoogleClientId && hasGoogleClientSecret)),
-    ),
-    note: "Values are intentionally not returned. Fix missing keys in Vercel Environment variables, then redeploy.",
+    // Host only — not a secret. Empty if AUTH_URL unset.
+    authUrlHost,
+    requestHost,
+    readyForGoogleSso,
+    readyForOAuthRedirect: authUrlMatchesHost,
+    note: "Values are intentionally not returned. Fix missing keys in Vercel Environment variables, then redeploy. AUTH_URL host must match this site (e.g. nilricsmartattendance.vercel.app).",
   });
 }
