@@ -1,21 +1,28 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, isResponse } from "@/lib/session";
-import { getDb } from "@/lib/workers";
 import { buildReportRows } from "@/lib/report";
+import { db } from "@/lib/db";
+import { isGateResponse, requireCapability } from "@/lib/platform";
+import { internalError } from "@/lib/server-errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/admin/attendance — attendance records for roles with
+ * attendance.view (HR, Accountant, Managing Director, Admin).
+ * Keeps the historical report-row shape and adds id/state for the
+ * Odoo-style record list.
+ */
 export async function GET(request: Request) {
-  const admin = await requireAdmin();
-  if (isResponse(admin)) return admin;
+  const gate = await requireCapability("attendance.view");
+  if (isGateResponse(gate)) return gate;
 
   try {
-    const db = getDb();
     const url = new URL(request.url);
     const from = url.searchParams.get("from")?.trim();
     const to = url.searchParams.get("to")?.trim();
     const workerId = url.searchParams.get("workerId")?.trim();
+    const state = url.searchParams.get("state")?.trim();
 
     const conditions: string[] = ["1=1"];
     const parts: unknown[] = [];
@@ -32,13 +39,28 @@ export async function GET(request: Request) {
       parts.push(workerId);
       conditions.push(`ad.worker_id = $${parts.length}::uuid`);
     }
+    if (state === "open" || state === "closed" || state === "corrected") {
+      parts.push(state);
+      conditions.push(`ad.state = $${parts.length}`);
+    } else if (state === "missing") {
+      // No check-in record for today: surfaced as an informational filter.
+      conditions.push("FALSE");
+    }
 
-    const sql = `
-      SELECT
+    parts.push(5000);
+    const limitIdx = parts.length;
+
+    const raw = await db.sql.unsafe(
+      `SELECT
+        ad.id,
+        ad.state,
         ad.worker_id,
-        COALESCE(w.employee_code, w.email) AS employee_code,
-        w.name,
+        COALESCE(e.name, w.name) AS employee_name,
+        COALESCE(e.role, '') AS employee_role,
+        COALESCE(e.department, '') AS employee_department,
+        w.employee_code,
         w.email,
+        w.name,
         ad.attendance_day,
         ad.check_in_at,
         ad.check_out_at,
@@ -48,19 +70,36 @@ export async function GET(request: Request) {
         ad.check_out_distance_m
       FROM attendance_days ad
       JOIN workers w ON w.id = ad.worker_id
+      LEFT JOIN employees e ON e.email = w.email AND e.active = TRUE
       WHERE ${conditions.join(" AND ")}
       ORDER BY ad.attendance_day DESC, w.name ASC
-      LIMIT 5000
-    `;
+      LIMIT $${limitIdx}`,
+      parts,
+    );
 
-    const raw = await db.sql.unsafe(sql, parts);
-    const rows = buildReportRows(raw as never);
+    const reportRows = buildReportRows(raw as never);
+    // Attach id/state/employee enrichments in the same order as raw rows.
+    const rows = reportRows.map((row, i) => {
+      const r = raw[i] as {
+        id: string;
+        state: string;
+        employee_name: string;
+        employee_role: string;
+        employee_department: string;
+      } | undefined;
+      return {
+        ...row,
+        id: r?.id ?? null,
+        state: r?.state ?? "open",
+        employeeName: r?.employee_name || row.name,
+        employeeRole: r?.employee_role || null,
+        employeeDepartment: r?.employee_department || null,
+      };
+    });
+
     return NextResponse.json({ rows });
   } catch (err) {
     console.error("admin attendance error", err);
-    return NextResponse.json(
-      { error: "INTERNAL", message: "Internal Server Error" },
-      { status: 500 },
-    );
+    return internalError("Failed to load attendance records");
   }
 }

@@ -15,6 +15,33 @@ Workers sign in with Google (prevents credential sharing). Location access is **
 - Installable PWA (static service worker) with install prompt
 - Admin dashboard: workers, sites, reports, CSV export
 
+## V1 platform modules (Odoo-inspired)
+
+The app now has an Odoo-inspired module platform plus two modules:
+
+- **Employees** — employee directory with department, job title, manager and
+  platform role. Managed at `/admin/employees` (search, create, edit, archive).
+- **Attendances** — Odoo-style attendance records at
+  `/admin/attendance` with `open / closed / corrected` state.
+  HR, the Managing Director and Admins can correct records
+  (state, check-in/out times, correction notes) from the record detail page.
+
+### Roles
+
+| Role | Source of truth | Access |
+|------|-----------------|--------|
+| Administrator | `ADMIN_EMAILS` env | Everything, incl. workers/sites settings |
+| HR Officer | `employees.role = 'hr'` | Manage employees, view + correct attendance |
+| Managing Director | `employees.role = 'director'` | View all, correct attendance |
+| Accountant | `employees.role = 'accountant'` | View employees + attendance |
+| Marketing | `employees.role = 'marketing'` | View employee directory |
+| Worker | default Google sign-in | Check-in/out self-service |
+
+Set an employee's role on their record at `/admin/employees/[id]`. Role is
+resolved from the employee record at sign-in, with `ADMIN_EMAILS` always
+winning as full administrator. The migration is `db/migrations/0005_v1_platform.sql`
+(apply with `npm run db:migrate`).
+
 ## Stack
 
 | Piece | Tech |
