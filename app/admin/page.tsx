@@ -37,6 +37,22 @@ const MODULES: ModuleCard[] = [
     color: "bg-sky-100",
   },
   {
+    href: "/admin/time-off",
+    label: "Time Off",
+    description: "Leave requests and approvals",
+    icon: "🌴",
+    capability: "leaves.view",
+    color: "bg-teal-100",
+  },
+  {
+    href: "/admin/recruitment",
+    label: "Recruitment",
+    description: "Job pipeline and applicant stages",
+    icon: "🎯",
+    capability: "recruitment.view",
+    color: "bg-orange-100",
+  },
+  {
     href: "/admin/reports",
     label: "Attendance Report",
     description: "Worked hours by employee and day",
@@ -69,6 +85,8 @@ export default async function AdminOverviewPage() {
 
   let employeeStats: { total: number; active: number } | null = null;
   let attendanceStats: { checkedInToday: number; open: number } | null = null;
+  let leaveStats: { pending: number; onLeaveToday: number } | null = null;
+  let recruitmentStats: { open: number; inPipeline: number } | null = null;
 
   if (can(user.role, "employees.view")) {
     try {
@@ -105,6 +123,42 @@ export default async function AdminOverviewPage() {
     }
   }
 
+  if (can(user.role, "leaves.view")) {
+    try {
+      const rows = await db.sql<{ pending: number; on_leave: number }>`
+        SELECT
+          COUNT(*) FILTER (WHERE state = 'to_approve')::int AS pending,
+          COUNT(DISTINCT l.employee_id)::int AS on_leave
+        FROM leaves l
+        WHERE (CURRENT_DATE, CURRENT_DATE) OVERLAPS (l.date_from, l.date_to)
+          AND l.state IN ('to_approve', 'validated')
+      `;
+      leaveStats = {
+        pending: rows[0]?.pending ?? 0,
+        onLeaveToday: rows[0]?.on_leave ?? 0,
+      };
+    } catch {
+      leaveStats = null;
+    }
+  }
+
+  if (can(user.role, "recruitment.view")) {
+    try {
+      const rows = await db.sql<{ open_positions: number; applicants: number }>`
+        SELECT
+          (SELECT COUNT(*)::int FROM job_positions WHERE state = 'open') AS open_positions,
+          (SELECT COUNT(*)::int FROM job_applicants
+             WHERE stage NOT IN ('employed', 'refused')) AS applicants
+      `;
+      recruitmentStats = {
+        open: rows[0]?.open_positions ?? 0,
+        inPipeline: rows[0]?.applicants ?? 0,
+      };
+    } catch {
+      recruitmentStats = null;
+    }
+  }
+
   return (
     <div className="p-4 md:p-6">
       <header className="mb-6">
@@ -123,7 +177,13 @@ export default async function AdminOverviewPage() {
           />
           <StatCard label="Checked in today" value={attendanceStats ? String(attendanceStats.checkedInToday) : "—"} />
           <StatCard label="Open records today" value={attendanceStats ? String(attendanceStats.open) : "—"} />
-          <StatCard label="Your department" value={user.department ?? "—"} />
+          <StatCard label="Pending leave requests" value={leaveStats ? String(leaveStats.pending) : "—"} />
+          {recruitmentStats && (
+            <StatCard
+              label="Open positions / applicants"
+              value={`${recruitmentStats.open} / ${recruitmentStats.inPipeline}`}
+            />
+          )}
         </section>
       )}
 

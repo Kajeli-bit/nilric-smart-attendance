@@ -25,6 +25,14 @@ The app now has an Odoo-inspired module platform plus two modules:
   `/admin/attendance` with `open / closed / corrected` state.
   HR, the Managing Director and Admins can correct records
   (state, check-in/out times, correction notes) from the record detail page.
+- **Time Off** — leave requests at `/admin/time-off` with an approval
+  workflow (`to_approve / validated / refused / draft`). Workers request
+  time off from their own portal (`/api/my/leaves`); HR, Managing Director
+  and Admins approve or refuse. Migration: `db/migrations/0006_timeoff_recruitment.sql`.
+- **Recruitment** — applicant pipeline at `/admin/recruitment` with an
+  Odoo-style kanban board (`new → screening → 1st/2nd interview → contract →
+  hired`, plus `refused`) and job positions. HR and Admins manage it.
+  Migration: same `0006_timeoff_recruitment.sql`.
 
 ### Roles
 
@@ -33,14 +41,17 @@ The app now has an Odoo-inspired module platform plus two modules:
 | Administrator | `ADMIN_EMAILS` env | Everything, incl. workers/sites settings |
 | HR Officer | `employees.role = 'hr'` | Manage employees, view + correct attendance |
 | Managing Director | `employees.role = 'director'` | View all, correct attendance |
-| Accountant | `employees.role = 'accountant'` | View employees + attendance |
-| Marketing | `employees.role = 'marketing'` | View employee directory |
+| Accountant | `employees.role = 'accountant'` | View employees + attendance + leaves |
+| Marketing | `employees.role = 'marketing'` | View employees, leaves, applicants |
 | Worker | default Google sign-in | Check-in/out self-service |
 
 Set an employee's role on their record at `/admin/employees/[id]`. Role is
 resolved from the employee record at sign-in, with `ADMIN_EMAILS` always
 winning as full administrator. The migration is `db/migrations/0005_v1_platform.sql`
-(apply with `npm run db:migrate`).
+(apply with `npm run db:migrate`). Time Off and Recruitment tables come
+from `db/migrations/0006_timeoff_recruitment.sql`. The admin shell is an
+Odoo-style web client (app bar + app switcher + module sidebar), and signed-in
+workers get a self-service portal with GPS check-in and "My Time Off".
 
 ## Stack
 

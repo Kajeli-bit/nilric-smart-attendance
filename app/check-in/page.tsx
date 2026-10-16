@@ -4,7 +4,6 @@ import { auth, getAuthConfigIssues } from "@/lib/auth";
 import { isAdminEmail } from "@/lib/env";
 import { CheckInForm } from "@/components/CheckInForm";
 import { SignInPanel } from "@/components/SignInPanel";
-import { BrandHeader } from "@/components/BrandHeader";
 import { SetupRequiredPanel } from "@/components/SetupRequiredPanel";
 
 export const metadata: Metadata = {
@@ -17,6 +16,7 @@ export const dynamic = "force-dynamic";
 
 async function readSessionEmail(): Promise<{
   email: string | null;
+  name: string | null;
   isAdmin: boolean;
   setupIssues: string[];
 }> {
@@ -25,6 +25,7 @@ async function readSessionEmail(): Promise<{
     const email = session?.user?.email?.trim().toLowerCase() ?? null;
     return {
       email,
+      name: session?.user?.name ?? null,
       isAdmin: email ? isAdminEmail(email) : false,
       setupIssues: [],
     };
@@ -35,15 +36,15 @@ async function readSessionEmail(): Promise<{
       setupIssues.length > 0 ||
       /AUTH_|Auth configuration|server configuration|MissingSecret/i.test(message)
     ) {
-      return { email: null, isAdmin: false, setupIssues };
+      return { email: null, name: null, isAdmin: false, setupIssues };
     }
     console.error("check-in auth error", err);
-    return { email: null, isAdmin: false, setupIssues };
+    return { email: null, name: null, isAdmin: false, setupIssues };
   }
 }
 
 export default async function CheckInPage() {
-  const { email, isAdmin, setupIssues } = await readSessionEmail();
+  const { email, name, isAdmin, setupIssues } = await readSessionEmail();
 
   if (setupIssues.length > 0) {
     return <SetupRequiredPanel issues={setupIssues} title="Check-in setup required" />;
@@ -57,22 +58,47 @@ export default async function CheckInPage() {
     );
   }
 
+  const firstName = (name ?? email).split(/\s+/)[0] ?? "there";
+
   return (
-    <main className="mx-auto w-full max-w-md py-4">
-      <BrandHeader
-        title="Worker Attendance"
-        subtitle="Google sign-in · location required"
-      />
-      {isAdmin && (
-        <div className="mb-4 flex justify-center">
+    <main className="mx-auto w-full max-w-md pb-10">
+      <div
+        className="sticky top-0 z-10 -mx-4 mb-4 flex items-center gap-3 px-4 py-3 text-white rounded-b-2xl shadow-lg"
+        style={{ backgroundColor: "#714B67" }}
+      >
+        <Link
+          href="/"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-lg"
+          aria-label="Back to home"
+        >
+          ‹
+        </Link>
+        <div className="leading-tight">
+          <p className="text-sm font-semibold tracking-wide">Attendances</p>
+          <p className="text-xs text-white/70">Google sign-in · location required</p>
+        </div>
+        {isAdmin && (
           <Link
             href="/admin"
-            className="btn-secondary rounded-xl px-4 py-2 text-sm font-semibold"
+            className="ml-auto rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold hover:bg-white/25"
           >
-            Open Admin Panel
+            Admin
           </Link>
-        </div>
-      )}
+        )}
+      </div>
+
+      <div className="mb-4 text-center">
+        <p className="text-xs font-medium uppercase tracking-wider text-brand-600">
+          Attendances
+        </p>
+        <h1 className="mt-1 text-xl font-bold text-slate-900">
+          Hello, {firstName}
+        </h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Pick Head office or a project site, then check in or out.
+        </p>
+      </div>
+
       <CheckInForm />
     </main>
   );

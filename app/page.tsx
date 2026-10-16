@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { auth, getAuthConfigIssues } from "@/lib/auth";
 import { isAdminEmail } from "@/lib/env";
-import { UserBadge } from "@/components/AuthButtons";
-import { BrandHeader } from "@/components/BrandHeader";
 import { SignInPanel } from "@/components/SignInPanel";
 import { SetupRequiredPanel } from "@/components/SetupRequiredPanel";
 import { InstallAppPrompt } from "@/components/InstallAppPrompt";
+import { MyTimeOffCard } from "@/components/MyTimeOffCard";
 
 export const metadata: Metadata = {
   title: "Nilric Smart Attendance",
@@ -16,6 +15,7 @@ export const dynamic = "force-dynamic";
 
 async function readSessionEmail(): Promise<{
   email: string | null;
+  name: string | null;
   isAdmin: boolean;
   setupIssues: string[];
 }> {
@@ -24,6 +24,7 @@ async function readSessionEmail(): Promise<{
     const email = session?.user?.email?.trim().toLowerCase() ?? null;
     return {
       email,
+      name: session?.user?.name ?? null,
       isAdmin: email ? isAdminEmail(email) : false,
       setupIssues: [],
     };
@@ -34,15 +35,15 @@ async function readSessionEmail(): Promise<{
       setupIssues.length > 0 ||
       /AUTH_|Auth configuration|server configuration|MissingSecret/i.test(message)
     ) {
-      return { email: null, isAdmin: false, setupIssues };
+      return { email: null, name: null, isAdmin: false, setupIssues };
     }
     console.error("home auth error", err);
-    return { email: null, isAdmin: false, setupIssues };
+    return { email: null, name: null, isAdmin: false, setupIssues };
   }
 }
 
 export default async function HomePage() {
-  const { email, isAdmin, setupIssues } = await readSessionEmail();
+  const { email, name, isAdmin, setupIssues } = await readSessionEmail();
 
   if (setupIssues.length > 0) {
     return <SetupRequiredPanel issues={setupIssues} />;
@@ -56,69 +57,100 @@ export default async function HomePage() {
     );
   }
 
+  const firstName = (name ?? email).split(/\s+/)[0] ?? "there";
+
   return (
-    <main className="mx-auto w-full max-w-md py-4">
-      <BrandHeader
-        title="Nilric Smart Attendance"
-        subtitle={
-          isAdmin
-            ? "You have admin access. Check in or open the admin panel."
-            : "Sign in with Google, then check in from your phone."
-        }
-      />
+    <main className="mx-auto w-full max-w-md pb-10">
+      {/* Odoo-style app banner */}
+      <div
+        className="sticky top-0 z-10 -mx-4 mb-4 flex items-center gap-3 px-4 py-3 text-white rounded-b-2xl shadow-lg"
+        style={{ backgroundColor: "#714B67" }}
+      >
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-lg">
+          🧭
+        </span>
+        <div className="leading-tight">
+          <p className="text-sm font-semibold tracking-wide">Nilric Suite</p>
+          <p className="text-xs text-white/70">{isAdmin ? "Administrator" : "My Workspace"}</p>
+        </div>
+        <span
+          className="ml-auto inline-grid h-9 w-9 place-items-center rounded-full bg-white/15 text-xs font-semibold"
+          title={email}
+        >
+          {firstName.slice(0, 2).toUpperCase()}
+        </span>
+      </div>
+
       <InstallAppPrompt />
 
-      <div className="card mt-2 space-y-5 rounded-3xl p-6">
-        <UserBadge />
-
-        <div className="rounded-2xl bg-brand-50 p-4 text-sm text-brand-900 ring-1 ring-brand-100">
-          <p className="font-semibold">
-            {isAdmin ? "Admin account" : "Worker account"}
-          </p>
-          <p className="mt-1 break-all text-brand-800">{email}</p>
-          <p className="mt-2 text-xs leading-relaxed text-brand-800/90">
-            Location access is required for every check-in and check-out.
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <Link
-            href="/check-in"
-            className="btn-primary flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-center font-semibold"
-          >
-            Open Check-In
-          </Link>
-
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="btn-secondary flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-center font-semibold"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M4 7h16M4 12h16M4 17h10"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              Open Admin Panel
-            </Link>
-          )}
-        </div>
-
-        {isAdmin && (
-          <p className="text-center text-xs text-slate-500">
-            Admin pages: Overview · Workers · Reports
-          </p>
-        )}
+      {/* Greeting */}
+      <div className="card mt-2 rounded-3xl p-5">
+        <p className="text-xs font-medium uppercase tracking-wider text-brand-600">
+          Welcome back
+        </p>
+        <h1 className="mt-1 text-xl font-bold text-slate-900">
+          Hello, {firstName} 👋
+        </h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Holiday check-ins, attendance and time off — all in one place.
+        </p>
       </div>
+
+      {/* Module tiles, Odoo app grid style */}
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <Link
+          href="/check-in"
+          className="card group flex flex-col items-center rounded-2xl p-4 text-center transition-transform hover:-translate-y-0.5"
+        >
+          <span className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-purple-400 to-[#714B67] text-xl">
+            ⏱️
+          </span>
+          <span className="mt-2 text-sm font-semibold text-slate-800">
+            Check In / Out
+          </span>
+          <span className="text-xs text-slate-500">GPS-verified attendance</span>
+        </Link>
+
+        <a
+          href="#my-time-off"
+          className="card group flex flex-col items-center rounded-2xl p-4 text-center transition-transform hover:-translate-y-0.5"
+        >
+          <span className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-teal-400 to-[#0d8a6f] text-xl">
+            🌴
+          </span>
+          <span className="mt-2 text-sm font-semibold text-slate-800">My Time Off</span>
+          <span className="text-xs text-slate-500">Leave requests</span>
+        </a>
+      </div>
+
+      {isAdmin && (
+        <Link
+          href="/admin"
+          className="card mt-3 flex items-center gap-3 rounded-2xl p-4 transition-transform hover:-translate-y-0.5"
+        >
+          <span className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-purple-400 to-[#714B67] text-xl">
+            📊
+          </span>
+          <span>
+            <span className="block text-sm font-semibold text-slate-800">
+              Administration
+            </span>
+            <span className="block text-xs text-slate-500">
+              Employees · Attendances · Time Off · Recruitment
+            </span>
+          </span>
+          <span className="ml-auto text-slate-400">›</span>
+        </Link>
+      )}
+
+      {/* Self-service time off */}
+      <div id="my-time-off" className="mt-4 scroll-mt-24">
+        <MyTimeOffCard />
+      </div>
+
+      <p className="mt-4 text-center text-xs text-slate-400">
+        Sign in: {email}
+      </p>
     </main>
   );
 }
