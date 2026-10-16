@@ -51,7 +51,22 @@ function baseUser(email: string, name: string | null, image: string | null): Pla
  * worker check-in keep working.
  */
 export async function resolvePlatformUser(): Promise<PlatformUser> {
-  const session = await auth();
+  interface MinimalSession {
+    user?: {
+      email?: string | null;
+      name?: string | null;
+      image?: string | null;
+    } | null;
+  }
+
+  let session: MinimalSession | null = null;
+  try {
+    session = (await auth()) as unknown as MinimalSession | null;
+  } catch (err) {
+    // Missing/misconfigured OAuth env (e.g. local dev) or DB outages must
+    // never take the admin shell down with a 500 — degrade to anonymous.
+    console.error("platform auth resolution failed", err);
+  }
   const email = session?.user?.email?.trim().toLowerCase() ?? "";
   const name = session?.user?.name ?? null;
   const image = session?.user?.image ?? null;
