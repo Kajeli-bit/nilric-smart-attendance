@@ -1,4 +1,4 @@
-import { resolvePlatformUser } from "@/lib/platform";
+import { requirePageCapability } from "@/lib/page-guard";
 import { can } from "@/lib/roles";
 import { EmployeesPageClient } from "@/components/admin/employees/EmployeesPageClient";
 
@@ -9,6 +9,6 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminEmployeesPage() {
-  const user = await resolvePlatformUser();
+  const user = await requirePageCapability("employees.view");
   return <EmployeesPageClient canManage={can(user.role, "employees.manage")} />;
 }

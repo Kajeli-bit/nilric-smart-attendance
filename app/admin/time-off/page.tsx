@@ -1,4 +1,4 @@
-import { resolvePlatformUser } from "@/lib/platform";
+import { requirePageCapability } from "@/lib/page-guard";
 import { can } from "@/lib/roles";
 import { TimeOffPageClient } from "@/components/admin/timeoff/TimeOffPageClient";
 
@@ -9,7 +9,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminTimeOffPage() {
-  const user = await resolvePlatformUser();
+  const user = await requirePageCapability("leaves.view");
   return (
     <TimeOffPageClient
       canManage={can(user.role, "leaves.manage")}

@@ -1,4 +1,4 @@
-import { resolvePlatformUser } from "@/lib/platform";
+import { requirePageCapability } from "@/lib/page-guard";
 import { can } from "@/lib/roles";
 import { AttendanceDetailClient } from "@/components/admin/attendance/AttendanceDetailClient";
 
@@ -14,7 +14,7 @@ export default async function AdminAttendanceDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await resolvePlatformUser();
+  const user = await requirePageCapability("attendance.view");
   return (
     <AttendanceDetailClient recordId={id} canCorrect={can(user.role, "attendance.correct")} />
   );

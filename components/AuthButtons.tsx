@@ -60,6 +60,39 @@ export function GoogleSignInButton({
   );
 }
 
+export function SignOutButton({ className = "" }: { className?: string }) {
+  const [busy, setBusy] = useState(false);
+
+  async function handleSignOut() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await signOut({ callbackUrl: "/" });
+    } catch {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleSignOut}
+      disabled={busy}
+      aria-busy={busy}
+      className={className}
+    >
+      {busy ? (
+        <span className="inline-flex items-center gap-1.5">
+          <Spinner size={12} className="text-current" />
+          Signing out…
+        </span>
+      ) : (
+        "Sign out"
+      )}
+    </button>
+  );
+}
+
 export function UserBadge() {
   const { data, status } = useSession();
   const [signingOut, setSigningOut] = useState(false);

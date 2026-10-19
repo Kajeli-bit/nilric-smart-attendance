@@ -1,3 +1,4 @@
+import { requirePageCapability } from "@/lib/page-guard";
 import { AttendancePageClient } from "@/components/admin/attendance/AttendancePageClient";
 
 export const metadata = {
@@ -6,6 +7,7 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default function AdminAttendancePage() {
+export default async function AdminAttendancePage() {
+  await requirePageCapability("attendance.view");
   return <AttendancePageClient />;
 }

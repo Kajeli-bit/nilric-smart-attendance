@@ -79,7 +79,9 @@ export function AdminSidebar({
         </button>
 
         <Link
-          href="/admin"
+          href="/"
+          title="Open the app launcher"
+          aria-label="Open the app launcher"
           className="flex items-center gap-2 font-semibold whitespace-nowrap"
         >
           <span className="inline-flex h-7 w-7 items-center justify-center rounded bg-white/15 text-[15px]">
@@ -96,6 +98,12 @@ export function AdminSidebar({
         </span>
 
         <div className="ml-auto flex items-center gap-2">
+          <Link
+            href="/"
+            className="hidden rounded-md px-2.5 py-1.5 text-xs font-medium text-white/90 hover:bg-white/10 sm:block"
+          >
+            All apps
+          </Link>
           <Link
             href="/check-in"
             className="hidden rounded-md px-2.5 py-1.5 text-xs font-medium text-white/90 hover:bg-white/10 sm:block"
@@ -135,9 +143,16 @@ export function AdminSidebar({
             </p>
             <div className="grid grid-cols-3 gap-2">
               <AppTile
+                href="/"
+                icon="▦"
+                label="All apps"
+                active={false}
+                onNavigate={() => setSwitcher(false)}
+              />
+              <AppTile
                 href="/admin"
                 icon="🏠"
-                label="Home"
+                label="Dashboard"
                 active={pathname === "/admin"}
                 onNavigate={() => setSwitcher(false)}
               />

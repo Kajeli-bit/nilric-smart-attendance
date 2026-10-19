@@ -6,7 +6,9 @@ Workers sign in with Google (prevents credential sharing). Location access is **
 
 ## Features
 
+- **SSO-gated app** — `/`, `/check-in`, `/time-off` and `/admin/*` all require Google sign-in before any content renders
 - **Google SSO** for workers and admins (Auth.js / NextAuth)
+- **Post-login app launcher** — after sign-in everyone lands on an app grid showing only the modules their role can open
 - **Admin access control** via `ADMIN_EMAILS` allowlist
 - **Mandatory GPS** before check-in/out (app blocks if location is denied)
 - Dual-layer verification: GPS geofence + office Wi-Fi IP backup
@@ -187,13 +189,35 @@ Admins register remote project sites (name, address, lat/lng, radius) on `/admin
 
 Worker check-in does **not** load Google Maps — only the admin sites UI does.
 
+## Apps by role
+
+The post-login launcher at `/` lists **My workspace** apps for everyone and a
+**Management** group for roles with the matching capability.
+
+| App | Route | Visible to |
+|-----|-------|-----------|
+| Attendance | `/check-in` | Everyone |
+| My Time Off | `/time-off` | Everyone |
+| Attendances | `/admin/attendance` | HR, Accountant, Director, Admin |
+| Attendance Report | `/admin/reports` | HR, Accountant, Director, Admin |
+| Employees | `/admin/employees` | HR, Accountant, Marketing, Director, Admin |
+| Time Off (approvals) | `/admin/time-off` | HR, Accountant, Marketing, Director, Admin |
+| Recruitment | `/admin/recruitment` | HR, Marketing, Director, Admin |
+| Sites | `/admin/sites` | Admin |
+| Worker Accounts | `/admin/workers` | Admin |
+
+Signed-in users without a management capability are redirected from
+`/admin/*` back to the launcher, and each module page is guarded server-side
+by its capability (not just by the filtered menu).
+
 ## Worker flow
 
-1. Open `/` or `/check-in` → **Sign in with Google**
-2. Pick **Work location**: Head office (default) or a project site
-3. Tap **Check In** / **Check Out**
-4. App **requires location permission**
-5. On success: welcome/goodbye using site name or office name/city
+1. Open `/` (website or installed PWA) → **Sign in with Google**
+2. Land on the app launcher and open **Attendance** or **My Time Off**
+3. Pick **Work location**: Head office (default) or a project site
+4. Tap **Check In** / **Check Out**
+5. App **requires location permission**
+6. On success: welcome/goodbye using site name or office name/city
 
 Server verifies GPS inside the selected geofence **or** (HQ only) client IP matches `OFFICE_PUBLIC_IP`.
 

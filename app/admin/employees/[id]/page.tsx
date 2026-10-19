@@ -1,4 +1,4 @@
-import { resolvePlatformUser } from "@/lib/platform";
+import { requirePageCapability } from "@/lib/page-guard";
 import { can } from "@/lib/roles";
 import { EmployeeDetailClient } from "@/components/admin/employees/EmployeeDetailClient";
 
@@ -14,7 +14,7 @@ export default async function AdminEmployeeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await resolvePlatformUser();
+  const user = await requirePageCapability("employees.view");
   return (
     <EmployeeDetailClient employeeId={id} canManage={can(user.role, "employees.manage")} />
   );

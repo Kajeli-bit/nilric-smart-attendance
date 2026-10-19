@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { resolvePlatformUser } from "@/lib/platform";
 import { menuForRole } from "@/lib/roles";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
@@ -13,17 +13,17 @@ export const dynamic = "force-dynamic";
 /**
  * Odoo-inspired admin shell.
  *
- * Any signed-in Google worker gets the shell; menu groups are filtered by
- * the capability matrix, so workers see only the Dashboard and get a hint
- * that attendance self-service happens on the check-in screen.
- *
- * The AdminSidebar component owns the full shell: a full-width app bar,
- * then the sidebar + content row. Children are rendered into the content
- * area (or a sign-in notice when no session exists).
+ * Google SSO is mandatory: signed-out visitors land on the app launcher
+ * sign-in gate. Plain workers (no management capabilities) are also sent
+ * back to the launcher, where only their self-service apps are listed.
  */
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const user = await resolvePlatformUser();
+  if (!user.email) redirect("/");
+
   const groups = menuForRole(user.role);
+  const hasManagementModules = groups.some((group) => group.items.length > 0);
+  if (!hasManagementModules) redirect("/");
 
   return (
     <AdminSidebar
@@ -32,19 +32,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       email={user.email}
       name={user.name}
     >
-      {!user.email ? (
-        <div className="p-4">
-          <div className="m-2 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-            Google sign-in required. Open the{" "}
-            <Link href="/" className="font-semibold underline">
-              home page
-            </Link>{" "}
-            and sign in with your Google account.
-          </div>
-        </div>
-      ) : (
-        children
-      )}
+      {children}
     </AdminSidebar>
   );
 }
