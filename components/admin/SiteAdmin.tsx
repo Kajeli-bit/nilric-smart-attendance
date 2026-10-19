@@ -224,7 +224,7 @@ export function SiteAdmin() {
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               required
-              className="w-full rounded-xl border border-slate-300 px-3 py-2"
+              className="input w-full rounded-xl px-3 py-2"
               placeholder="e.g. Site A — Kariakoo"
             />
           </label>
@@ -239,7 +239,7 @@ export function SiteAdmin() {
               onChange={(e) =>
                 setForm((f) => ({ ...f, radiusM: Number(e.target.value) }))
               }
-              className="w-full rounded-xl border border-slate-300 px-3 py-2"
+              className="input w-full rounded-xl px-3 py-2"
             />
           </label>
         </div>
@@ -251,7 +251,7 @@ export function SiteAdmin() {
           <input
             value={form.address}
             onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2"
+            className="input w-full rounded-xl px-3 py-2"
             placeholder="Auto-filled when you pick on the map"
           />
         </label>
@@ -354,14 +354,14 @@ export function SiteAdmin() {
                     <button
                       type="button"
                       onClick={() => startEdit(site)}
-                      className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      className="btn-quiet rounded-lg px-2 py-1 text-xs font-medium"
                     >
                       Edit
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleActive(site)}
-                      className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      className="btn-quiet rounded-lg px-2 py-1 text-xs font-medium"
                     >
                       {site.active ? "Deactivate" : "Activate"}
                     </button>

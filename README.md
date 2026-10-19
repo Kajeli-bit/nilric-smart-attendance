@@ -68,6 +68,24 @@ workers get a self-service portal with GPS check-in and "My Time Off".
 
 > **Note:** Legacy “Vercel Postgres” / Netlify Database are retired. New projects use **Neon Postgres** installed from the Vercel Marketplace. The app reads `POSTGRES_URL` (also accepts `DATABASE_URL`).
 
+## UI design system
+
+One violet palette (from the logo) plus neutral tokens, defined in
+`app/globals.css`:
+
+| Token | Used for |
+|-------|----------|
+| `brand-50…950` | Primary actions, app bars, focus, active nav |
+| `surface` / `surface-muted` / `surface-sunken` | Cards, page background, table heads |
+| `line` / `line-strong` | Hairline borders and control borders |
+| `ink` / `ink-muted` / `ink-faint` | Text hierarchy |
+
+Shared classes: `.card`, `.panel`, `.btn-primary`, `.btn-secondary`,
+`.btn-quiet`, `.input`, `.eyebrow`, `.tnum`. Shared components: `PageBar`
+(worker page bar) and `ModuleHeader` (admin module header). The old Odoo
+plum (`#714B67`) and the unused `AdminNav` component were removed so the
+whole product uses one palette.
+
 ## Google OAuth setup
 
 ### 1. Project + OAuth consent screen

@@ -242,7 +242,7 @@ export function EmployeeDetailClient({
             <button
               type="submit"
               disabled={status === "saving"}
-              className="rounded-lg bg-[#714B67] px-4 py-2 text-sm font-medium text-white hover:bg-[#5b3a51] disabled:opacity-50"
+              className="rounded-lg btn-primary px-4 py-2 text-sm font-medium"
             >
               {status === "saving" ? "Saving…" : "Save"}
             </button>
@@ -250,7 +250,7 @@ export function EmployeeDetailClient({
               type="button"
               onClick={toggleActive}
               disabled={status === "saving"}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="btn-secondary rounded-lg px-4 py-2 text-sm disabled:opacity-50"
             >
               {employee.active ? "Archive" : "Set active"}
             </button>
@@ -266,7 +266,7 @@ export function EmployeeDetailClient({
           <ul className="divide-y divide-slate-100">
             {reports.map((r) => (
               <li key={r.id} className="flex items-center justify-between py-2 text-sm">
-                <Link href={`/admin/employees/${r.id}`} className="text-[#714B67] hover:underline">
+                <Link href={`/admin/employees/${r.id}`} className="text-brand-700 hover:underline">
                   {r.name}
                 </Link>
                 <span className="text-slate-500">{roleLabel(r.role)}</span>

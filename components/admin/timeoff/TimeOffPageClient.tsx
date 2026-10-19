@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ModuleHeader } from "@/components/admin/ModuleHeader";
 
 interface LeaveRow {
   id: string;
@@ -148,27 +149,22 @@ export function TimeOffPageClient({
 
   return (
     <div className="p-4 md:p-6">
-      {/* Control panel header, Odoo style */}
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <nav className="text-xs text-slate-500">Time Off</nav>
-          <h1 className="text-2xl font-semibold text-slate-900">Time Off</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Leave requests and approvals. HR and the Managing Director approve
-            or refuse.
-          </p>
-        </div>
-        {canManage && (
-          <button
-            type="button"
-            onClick={() => setShowCreate((v) => !v)}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-            style={{ backgroundColor: "#714B67" }}
-          >
-            {showCreate ? "Cancel" : "+ New"}
-          </button>
-        )}
-      </div>
+      <ModuleHeader
+        section="Time Off"
+        title="Time Off"
+        description="Leave requests and approvals. HR and the Managing Director approve or refuse."
+        actions={
+          canManage ? (
+            <button
+              type="button"
+              onClick={() => setShowCreate((v) => !v)}
+              className="btn-primary rounded-lg px-4 py-2 text-sm font-medium"
+            >
+              {showCreate ? "Cancel" : "+ New"}
+            </button>
+          ) : undefined
+        }
+      />
 
       {notice && (
         <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
@@ -207,12 +203,7 @@ export function TimeOffPageClient({
             key={key}
             type="button"
             onClick={() => setFilter(key)}
-            className="rounded-full border px-3 py-1.5 text-sm transition-colors"
-            style={
-              filter === key
-                ? { backgroundColor: "#714B67", borderColor: "#714B67", color: "#fff" }
-                : { borderColor: "#d8d4e2", color: "#475569" }
-            }
+            className="btn-quiet rounded-full px-3 py-1.5 text-sm"
             aria-pressed={filter === key}
           >
             {label}
@@ -224,7 +215,7 @@ export function TimeOffPageClient({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search employee, reason…"
-          className="ml-auto w-56 rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+          className="input ml-auto w-56 rounded-lg px-3 py-1.5 text-sm"
         />
       </div>
 
@@ -383,7 +374,7 @@ function CreateLeave({
             value={employeeId}
             onChange={(e) => setEmployeeId(e.target.value)}
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           >
             <option value="">Select employee…</option>
             {employees.map((emp) => (
@@ -398,7 +389,7 @@ function CreateLeave({
           <select
             value={leaveType}
             onChange={(e) => setLeaveType(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           >
             {Object.entries(TYPE_LABEL).map(([value, label]) => (
               <option key={value} value={value}>
@@ -414,7 +405,7 @@ function CreateLeave({
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           />
         </label>
         <label>
@@ -424,7 +415,7 @@ function CreateLeave({
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           />
         </label>
         <label className="sm:col-span-2 lg:col-span-5">
@@ -433,7 +424,7 @@ function CreateLeave({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={2}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           />
         </label>
       </div>
@@ -442,8 +433,7 @@ function CreateLeave({
         <button
           type="submit"
           disabled={busy}
-          className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          style={{ backgroundColor: "#714B67" }}
+          className="btn-primary rounded-lg px-4 py-2 text-sm font-medium"
         >
           {busy ? "Saving…" : "Create"}
         </button>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { ModuleHeader } from "@/components/admin/ModuleHeader";
 
 interface AttendanceListRow {
   id: string | null;
@@ -85,14 +86,11 @@ export function AttendancePageClient() {
 
   return (
     <div className="p-4 md:p-6">
-      <header className="mb-4">
-        <nav className="text-xs text-slate-500">Attendances</nav>
-        <h1 className="text-2xl font-semibold text-slate-900">Attendance Records</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Check-in/out records per worker and day. HR and the Managing Director
-          can correct records.
-        </p>
-      </header>
+      <ModuleHeader
+        section="Attendances"
+        title="Attendance Records"
+        description="Check-in/out records per worker and day. HR and the Managing Director can correct records."
+      />
 
       <div className="mb-3 flex flex-wrap items-end gap-2">
         <label className="block">
@@ -101,7 +99,7 @@ export function AttendancePageClient() {
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input rounded-lg px-3 py-2 text-sm"
           />
         </label>
         <label className="block">
@@ -110,7 +108,7 @@ export function AttendancePageClient() {
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input rounded-lg px-3 py-2 text-sm"
           />
         </label>
         <label className="block">
@@ -118,7 +116,7 @@ export function AttendancePageClient() {
           <select
             value={state}
             onChange={(e) => setState(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input rounded-lg px-3 py-2 text-sm"
           >
             <option value="">All states</option>
             <option value="open">Open (no check-out)</option>
@@ -129,7 +127,7 @@ export function AttendancePageClient() {
         <button
           type="button"
           onClick={() => void load()}
-          className="rounded-lg bg-[#714B67] px-4 py-2 text-sm font-medium text-white hover:bg-[#5b3a51]"
+          className="rounded-lg btn-primary px-4 py-2 text-sm font-medium"
         >
           Apply
         </button>
@@ -174,7 +172,7 @@ export function AttendancePageClient() {
                   {row.id ? (
                     <Link
                       href={`/admin/attendance/${row.id}`}
-                      className="font-medium text-[#714B67] hover:underline"
+                      className="font-medium text-brand-700 hover:underline"
                     >
                       {row.employeeName || row.name}
                     </Link>

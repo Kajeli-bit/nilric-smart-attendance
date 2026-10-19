@@ -15,7 +15,7 @@ const GROUP_ICONS: Record<string, string> = {
   employees: "🧑‍💼",
 };
 
-const OD = "#714B67";
+const OD = "var(--color-brand-700)";
 const BAR_H = 52;
 
 /**
@@ -179,14 +179,14 @@ export function AdminSidebar({
         <aside
           className={`${
             open ? "block" : "hidden md:block"
-          } absolute z-20 w-72 rounded-r-xl border-r border-purple-950/10 bg-[#faf9fc] shadow-xl md:w-[230px] md:rounded-none md:sticky md:shadow-none`}
+          } absolute z-20 w-72 rounded-r-xl border-r border-line bg-surface-muted shadow-xl md:w-[230px] md:rounded-none md:sticky md:shadow-none`}
           style={{ top: 0, height: `calc(100vh - ${BAR_H}px)` }}
         >
           <div className="flex h-full flex-col">
             <nav className="flex-1 overflow-y-auto px-2 py-3">
               {groups.map((group) => (
                 <div key={group.key} className="mb-4">
-                  <p className="flex items-center gap-1.5 px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-purple-900/60">
+                  <p className="flex items-center gap-1.5 px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-brand-900/60">
                     {group.key !== "overview" && (
                       <span aria-hidden className="text-xs">
                         {GROUP_ICONS[group.key] ?? "📄"}
@@ -237,7 +237,7 @@ export function AdminSidebar({
                   <p className="truncate text-sm font-medium text-slate-800">
                     {name ?? email}
                   </p>
-                  <p className="truncate text-xs text-purple-800/80">
+                  <p className="truncate text-xs text-brand-800/80">
                     {roleLabel(role)}
                   </p>
                 </div>
@@ -245,7 +245,7 @@ export function AdminSidebar({
               <button
                 type="button"
                 onClick={() => void signOut()}
-                className="mt-2 w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+                className="btn-quiet mt-2 w-full rounded-md px-2 py-1.5 text-xs"
               >
                 Sign out
               </button>
@@ -286,8 +286,8 @@ function SideLink({
       onClick={onNavigate}
       className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
         active
-          ? "bg-purple-100 font-medium text-[#5b3a51]"
-          : "text-slate-700 hover:bg-purple-50"
+          ? "bg-brand-100 font-medium text-brand-800"
+          : "text-slate-700 hover:bg-brand-50"
       }`}
     >
       <span className="truncate">{label}</span>
@@ -314,11 +314,11 @@ function AppTile({
       onClick={onNavigate}
       className={`flex flex-col items-center gap-1 rounded-lg border p-2 text-center transition-colors ${
         active
-          ? "border-purple-300 bg-purple-50"
+          ? "border-brand-300 bg-brand-50"
           : "border-transparent hover:border-slate-200 hover:bg-slate-50"
       }`}
     >
-      <span className="inline-grid h-8 w-8 place-items-center rounded bg-[#714B67] p-1.5 text-sm leading-none">
+      <span className="inline-grid h-8 w-8 place-items-center rounded bg-brand-700 p-1.5 text-sm leading-none">
         {icon}
       </span>
       <span className="w-full truncate text-[11px] text-slate-700">{label}</span>

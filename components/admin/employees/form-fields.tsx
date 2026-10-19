@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 export const inputCls =
-  "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#714B67] focus:outline-none";
+  "input w-full rounded-lg px-3 py-2 text-sm";
 
 export function Field({
   label,

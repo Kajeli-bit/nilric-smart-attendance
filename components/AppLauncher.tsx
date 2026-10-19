@@ -90,7 +90,7 @@ export function AppLauncher({
     <main className="w-full pb-12">
       <InstallAppPrompt />
 
-      <header className="relative overflow-hidden rounded-3xl bg-[#714B67] text-white shadow-lg">
+      <header className="relative overflow-hidden rounded-3xl bg-brand-700 text-white shadow-lg">
         <div
           className="pointer-events-none absolute inset-0 opacity-70"
           aria-hidden="true"

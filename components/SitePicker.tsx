@@ -27,7 +27,7 @@ export function SitePicker({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled || loading}
-        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800"
+        className="input w-full rounded-xl px-3 py-2.5 text-sm"
       >
         <option value="">Head office (default)</option>
         {sites.map((site) => (

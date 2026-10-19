@@ -7,6 +7,7 @@ import {
   type Capability,
 } from "@/lib/roles";
 import { formatOfficeLabel } from "@/lib/env";
+import { ModuleHeader } from "@/components/admin/ModuleHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ const MODULES: ModuleCard[] = [
     description: "Directory, departments, managers and roles",
     icon: "🧑‍💼",
     capability: "employees.view",
-    color: "bg-purple-100",
+    color: "bg-brand-100",
   },
   {
     href: "/admin/attendance",
@@ -161,13 +162,16 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="p-4 md:p-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Signed in as {user.name ?? user.email} · {roleLabel(user.role)} ·{" "}
-          {formatOfficeLabel()}
-        </p>
-      </header>
+      <ModuleHeader
+        section="Overview"
+        title="Dashboard"
+        description={
+          <>
+            Signed in as {user.name ?? user.email} · {roleLabel(user.role)} ·{" "}
+            {formatOfficeLabel()}
+          </>
+        }
+      />
 
       {(employeeStats || attendanceStats) && (
         <section className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -202,7 +206,7 @@ export default async function AdminOverviewPage() {
             >
               {m.icon}
             </span>
-            <h3 className="mt-3 font-semibold text-slate-900 group-hover:text-[#714B67]">
+            <h3 className="mt-3 font-semibold text-slate-900 group-hover:text-brand-700">
               {m.label}
             </h3>
             <p className="mt-1 text-sm text-slate-600">{m.description}</p>
@@ -213,7 +217,7 @@ export default async function AdminOverviewPage() {
       {visible.length === 0 && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
           No admin modules for your role yet. You can check in and out from the{" "}
-          <Link href="/check-in" className="font-medium text-[#714B67] underline">
+          <Link href="/check-in" className="font-medium text-brand-700 underline">
             check-in screen
           </Link>
           .
@@ -229,7 +233,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
         {label}
       </p>
-      <p className="mt-1 text-xl font-semibold text-slate-900">{value}</p>
+      <p className="mt-1 text-xl font-semibold tnum text-ink">{value}</p>
     </div>
   );
 }

@@ -6,7 +6,7 @@ const APP_NAME = "Nilric Smart Attendance";
 const APP_DEFAULT_TITLE = "Nilric Smart Attendance";
 const APP_TITLE_TEMPLATE = "%s - Nilric";
 const APP_DESCRIPTION = "Google SSO location-based worker attendance";
-const THEME_COLOR = "#7C48CF";
+const THEME_COLOR = "#6a37b0";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,

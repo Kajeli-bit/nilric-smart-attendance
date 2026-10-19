@@ -275,7 +275,7 @@ export function GoogleSiteMap({
         type="text"
         placeholder="Search a place (Google Places)…"
         disabled={disabled || !apiKey}
-        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        className="input w-full rounded-xl px-3 py-2 text-sm"
         autoComplete="off"
       />
       <div

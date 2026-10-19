@@ -1,4 +1,5 @@
 import { requirePageCapability } from "@/lib/page-guard";
+import { ModuleHeader } from "@/components/admin/ModuleHeader";
 import { AttendanceReportTable } from "@/components/AttendanceReportTable";
 
 export const metadata = {
@@ -11,14 +12,11 @@ export default async function AdminReportsPage() {
   await requirePageCapability("attendance.view");
   return (
     <div className="p-4 md:p-6">
-      <header className="mb-4">
-        <nav className="text-xs text-slate-500">Attendances</nav>
-        <h1 className="text-2xl font-semibold text-slate-900">Attendance Report</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Worked hours by employee and day. CSV export follows your calendar
-          filter.
-        </p>
-      </header>
+      <ModuleHeader
+        section="Attendances"
+        title="Attendance Report"
+        description="Worked hours by employee and day. CSV export follows your calendar filter."
+      />
       <AttendanceReportTable />
     </div>
   );

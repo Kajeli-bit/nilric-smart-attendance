@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  /* Lighter Nilric purple — derived from company logo, softened for UI */
+  /* ── Nilric violet: the single primary scale, derived from the logo.
+        Used for headers, primary actions and focus — no second purple. ── */
   --color-brand-50: #f7f3ff;
   --color-brand-100: #efe7ff;
   --color-brand-200: #e0d0fc;
@@ -13,21 +14,58 @@
   --color-brand-800: #582d90;
   --color-brand-900: #472473;
   --color-brand-950: #2d154a;
+
+  /* ── Neutrals: surfaces, hairlines and text ── */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f7f8fb;
+  --color-surface-sunken: #f1f2f7;
+  --color-line: #e6e7ee;
+  --color-line-strong: #d3d5e0;
+  --color-ink: #17161f;
+  --color-ink-muted: #55556a;
+  --color-ink-faint: #8b8ba0;
 }
 
 :root {
-  --background: #f7f5fc;
-  --foreground: #1e1b2e;
+  color-scheme: light;
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 50% -120px, #ebe3ff 0%, transparent 55%),
-    var(--background);
-  color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+  background: linear-gradient(180deg, #f2eefc 0%, var(--color-surface-muted) 420px);
+  color: var(--color-ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.011em;
+}
+
+/* Numbers align in data tables and metric cards. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* One table-head treatment everywhere (records, reports, directories). */
+thead th {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Consistent keyboard focus everywhere. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+  border-radius: 8px;
 }
 
 /* Soft brand glow used behind logo / hero areas */
@@ -38,25 +76,40 @@ body {
     linear-gradient(180deg, #f3edff 0%, #faf8ff 100%);
 }
 
+/* Elevated white surface. Corner radius is left to rounded-* utilities. */
 .card {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(224, 208, 252, 0.9);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
   box-shadow:
-    0 1px 2px rgba(71, 36, 115, 0.04),
-    0 12px 32px -16px rgba(71, 36, 115, 0.18);
-  backdrop-filter: blur(8px);
+    0 1px 2px rgba(23, 22, 31, 0.04),
+    0 16px 32px -24px rgba(23, 22, 31, 0.35);
 }
 
+/* Table shell and panel surface used across admin modules. */
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(23, 22, 31, 0.04);
+}
+
+.panel-head {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-muted);
+  border-bottom: 1px solid var(--color-line);
+}
+
+/* ── Buttons ─────────────────────────────────────────── */
 .btn-primary {
-  background: linear-gradient(180deg, #9b73e4 0%, #7c48cf 100%);
+  background: var(--color-brand-600);
   color: #fff;
-  box-shadow: 0 8px 20px -10px rgba(124, 72, 207, 0.75);
-  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 8px 18px -12px rgba(124, 72, 207, 0.9);
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-primary:hover:not(:disabled) {
-  filter: brightness(1.05);
-  box-shadow: 0 10px 24px -10px rgba(124, 72, 207, 0.85);
+  background: var(--color-brand-700);
+  box-shadow: 0 10px 22px -12px rgba(106, 55, 176, 0.9);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -69,13 +122,85 @@ body {
 }
 
 .btn-secondary {
-  background: #fff;
-  color: #2d154a;
-  border: 1px solid #e0d0fc;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  background: var(--color-surface);
+  color: var(--color-brand-800);
+  border: 1px solid var(--color-line-strong);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #f7f3ff;
-  border-color: #c9aef5;
+  background: var(--color-brand-50);
+  border-color: var(--color-brand-300);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Quiet button for dense toolbars (filters, view toggles). */
+.btn-quiet {
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  border: 1px solid var(--color-line);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-quiet:hover:not(:disabled) {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink);
+}
+
+.btn-quiet[aria-pressed="true"] {
+  background: var(--color-brand-700);
+  border-color: var(--color-brand-700);
+  color: #fff;
+}
+
+/* ── Form controls ───────────────────────────────────── */
+.input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input::placeholder {
+  color: var(--color-ink-faint);
+}
+
+.input:hover:not(:disabled) {
+  border-color: var(--color-brand-300);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 3px rgba(147, 102, 224, 0.22);
+}
+
+.input:disabled {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-faint);
+  cursor: not-allowed;
+}
+
+/* Small uppercase section label used by module headers. */
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { ModuleHeader } from "@/components/admin/ModuleHeader";
 
 interface Applicant {
   id: string;
@@ -132,40 +133,40 @@ export function RecruitmentPageClient({ canManage }: { canManage: boolean }) {
 
   return (
     <div className="p-4 md:p-6">
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <nav className="text-xs text-slate-500">Recruitment</nav>
-          <h1 className="text-2xl font-semibold text-slate-900">Recruitment</h1>
-          <p className="mt-1 text-sm text-slate-600">
+      <ModuleHeader
+        section="Recruitment"
+        title="Recruitment"
+        description={
+          <>
             {positions.length} job positions ·{" "}
             {
               applicants.filter((a) => a.stage !== "employed" && a.stage !== "refused")
                 .length
             }{" "}
             applicants in pipeline
-          </p>
-        </div>
-        {canManage && (
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowPosition((v) => !v)}
-              className="rounded-lg border px-3 py-2 text-sm font-medium hover:bg-slate-50"
-              style={{ borderColor: "#714B67", color: "#714B67" }}
-            >
-              {showPosition ? "Cancel position" : "+ Job Position"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowCreate((v) => !v)}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-              style={{ backgroundColor: "#714B67" }}
-            >
-              {showCreate ? "Cancel" : "+ Applicant"}
-            </button>
-          </div>
-        )}
-      </div>
+          </>
+        }
+        actions={
+          canManage ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowPosition((v) => !v)}
+                className="btn-secondary rounded-lg px-3 py-2 text-sm font-medium"
+              >
+                {showPosition ? "Cancel position" : "+ Job Position"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreate((v) => !v)}
+                className="btn-primary rounded-lg px-4 py-2 text-sm font-medium"
+              >
+                {showCreate ? "Cancel" : "+ Applicant"}
+              </button>
+            </>
+          ) : undefined
+        }
+      />
 
       {notice && (
         <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
@@ -207,7 +208,7 @@ export function RecruitmentPageClient({ canManage }: { canManage: boolean }) {
               type="button"
               onClick={() => setView(v)}
               className={`px-3 py-1.5 capitalize ${
-                view === v ? "bg-purple-100 font-medium text-[#5b3a51]" : "bg-white text-slate-600 hover:bg-slate-50"
+                view === v ? "bg-brand-700 font-medium text-white" : "bg-white text-slate-600 hover:bg-slate-50"
               }`}
             >
               {v}
@@ -217,7 +218,7 @@ export function RecruitmentPageClient({ canManage }: { canManage: boolean }) {
         <select
           value={stageFilter}
           onChange={(e) => setStageFilter(e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+          className="input rounded-lg px-3 py-1.5 text-sm"
         >
           <option value="">All stages</option>
           {STAGES.map((s) => (
@@ -231,7 +232,7 @@ export function RecruitmentPageClient({ canManage }: { canManage: boolean }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search applicant or position…"
-          className="ml-auto w-56 rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+          className="input ml-auto w-56 rounded-lg px-3 py-1.5 text-sm"
         />
       </div>
 
@@ -361,7 +362,7 @@ function ApplicantCard({
           <button
             type="button"
             onClick={() => void onStage(a.id, nextStage.key)}
-            className="rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 text-[11px] font-medium text-[#5b3a51] hover:bg-purple-100"
+            className="rounded-md border border-brand-200 bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-800 hover:bg-brand-100"
           >
             → {nextStage.label}
           </button>
@@ -385,7 +386,7 @@ function ApplicantCard({
                   onClick={() => void onStage(a.id, s.key)}
                   className={`rounded-full border px-2 py-0.5 text-[10px] ${
                     a.stage === s.key
-                      ? "border-purple-400 bg-purple-100 font-semibold text-[#5b3a51]"
+                      ? "border-brand-400 bg-brand-100 font-semibold text-brand-800"
                       : "border-slate-200 text-slate-600 hover:bg-slate-50"
                   }`}
                 >
@@ -517,7 +518,7 @@ function CreateApplicant({
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           />
         </Field>
         <Field label="Email">
@@ -525,21 +526,21 @@ function CreateApplicant({
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           />
         </Field>
         <Field label="Phone">
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           />
         </Field>
         <Field label="Position">
           <select
             value={positionId}
             onChange={(e) => setPositionId(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           >
             <option value="">— none —</option>
             {positions.map((p) => (
@@ -553,7 +554,7 @@ function CreateApplicant({
           <input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           />
         </Field>
       </div>
@@ -562,8 +563,7 @@ function CreateApplicant({
         <button
           type="submit"
           disabled={busy}
-          className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          style={{ backgroundColor: "#714B67" }}
+          className="btn-primary rounded-lg px-4 py-2 text-sm font-medium"
         >
           {busy ? "Saving…" : "Create"}
         </button>
@@ -616,21 +616,21 @@ function CreatePosition({
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           />
         </Field>
         <Field label="Department">
           <input
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           />
         </Field>
         <Field label="Description">
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="input w-full rounded-lg px-3 py-2 text-sm"
           />
         </Field>
       </div>
@@ -639,8 +639,7 @@ function CreatePosition({
         <button
           type="submit"
           disabled={busy}
-          className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          style={{ backgroundColor: "#714B67" }}
+          className="btn-primary rounded-lg px-4 py-2 text-sm font-medium"
         >
           {busy ? "Saving…" : "Create"}
         </button>

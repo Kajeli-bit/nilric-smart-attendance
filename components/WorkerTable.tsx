@@ -93,12 +93,12 @@ export function WorkerTable() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Display name (creates worker shell)"
-          className="rounded-xl border border-slate-300 px-3 py-2"
+          className="input rounded-xl px-3 py-2"
         />
         <button
           type="submit"
           disabled={saving}
-          className="rounded-xl bg-brand-600 px-4 py-2 font-medium text-white disabled:opacity-50"
+          className="rounded-xl btn-primary px-4 py-2 font-medium"
         >
           Add worker
         </button>
@@ -110,12 +110,12 @@ export function WorkerTable() {
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && load(q)}
           placeholder="Search name, email, or code…"
-          className="flex-1 rounded-xl border border-slate-300 px-3 py-2"
+          className="input flex-1 rounded-xl px-3 py-2"
         />
         <button
           type="button"
           onClick={() => load(q)}
-          className="rounded-xl border border-slate-300 px-4 py-2"
+          className="btn-secondary rounded-xl px-4 py-2"
         >
           Search
         </button>

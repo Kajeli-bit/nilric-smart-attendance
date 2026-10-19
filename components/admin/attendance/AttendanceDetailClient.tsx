@@ -306,7 +306,7 @@ export function AttendanceDetailClient({
             <button
               type="submit"
               disabled={status === "saving"}
-              className="mt-4 rounded-lg bg-[#714B67] px-4 py-2 text-sm font-medium text-white hover:bg-[#5b3a51] disabled:opacity-50"
+              className="mt-4 rounded-lg btn-primary px-4 py-2 text-sm font-medium"
             >
               {status === "saving" ? "Saving…" : "Save correction"}
             </button>
@@ -352,7 +352,7 @@ export function AttendanceDetailClient({
 }
 
 const detailInputCls =
-  "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#714B67] focus:outline-none";
+  "input w-full rounded-lg px-3 py-2 text-sm";
 
 function Entry({ label, children }: { label: string; children: React.ReactNode }) {
   return (

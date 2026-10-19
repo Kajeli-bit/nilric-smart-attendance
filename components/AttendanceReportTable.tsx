@@ -74,7 +74,7 @@ export function AttendanceReportTable() {
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="ml-2 rounded-xl border border-slate-300 px-2 py-1.5"
+            className="input ml-2 rounded-xl px-2 py-1.5"
           />
         </label>
         <label className="text-sm text-slate-600">
@@ -83,19 +83,19 @@ export function AttendanceReportTable() {
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="ml-2 rounded-xl border border-slate-300 px-2 py-1.5"
+            className="input ml-2 rounded-xl px-2 py-1.5"
           />
         </label>
         <button
           type="button"
           onClick={() => load(from, to)}
-          className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white"
+          className="rounded-xl btn-primary px-4 py-2 text-sm font-medium"
         >
           Apply
         </button>
         <a
           href={csvHref()}
-          className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
+          className="btn-secondary rounded-xl px-4 py-2 text-sm font-medium"
         >
           Export CSV
         </a>

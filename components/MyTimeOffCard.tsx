@@ -128,8 +128,7 @@ export function MyTimeOffCard() {
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
-            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white"
-            style={{ backgroundColor: "#714B67" }}
+            className="btn-primary rounded-lg px-3 py-1.5 text-xs font-semibold"
           >
             {showForm ? "Cancel" : "Request"}
           </button>

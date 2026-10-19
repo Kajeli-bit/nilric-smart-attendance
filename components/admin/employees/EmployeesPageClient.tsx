@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { EMPLOYEE_ROLES, roleLabel } from "@/lib/roles";
+import { ModuleHeader } from "@/components/admin/ModuleHeader";
 
 interface EmployeeRow {
   id: string;
@@ -20,7 +21,7 @@ interface EmployeeRow {
 
 const ROLE_BADGE: Record<string, string> = {
   worker: "bg-slate-100 text-slate-700",
-  hr: "bg-purple-100 text-purple-800",
+  hr: "bg-brand-100 text-brand-800",
   accountant: "bg-emerald-100 text-emerald-800",
   marketing: "bg-amber-100 text-amber-800",
   director: "bg-indigo-100 text-indigo-800",
@@ -68,24 +69,22 @@ export function EmployeesPageClient({ canManage }: { canManage: boolean }) {
 
   return (
     <div className="p-4 md:p-6">
-      <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <nav className="text-xs text-slate-500">Employees</nav>
-          <h1 className="text-2xl font-semibold text-slate-900">Employees</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Employee directory with departments, managers and platform roles.
-          </p>
-        </div>
-        {canManage && (
-          <button
-            type="button"
-            onClick={() => setShowCreate((v) => !v)}
-            className="rounded-lg bg-[#714B67] px-4 py-2 text-sm font-medium text-white hover:bg-[#5b3a51]"
-          >
-            {showCreate ? "Cancel" : "+ New"}
-          </button>
-        )}
-      </header>
+      <ModuleHeader
+        section="Employees"
+        title="Employees"
+        description="Employee directory with departments, managers and platform roles."
+        actions={
+          canManage ? (
+            <button
+              type="button"
+              onClick={() => setShowCreate((v) => !v)}
+              className="btn-primary rounded-lg px-4 py-2 text-sm font-medium"
+            >
+              {showCreate ? "Cancel" : "+ New"}
+            </button>
+          ) : undefined
+        }
+      />
 
       {showCreate && canManage && (
         <CreateEmployee
@@ -115,12 +114,12 @@ export function EmployeesPageClient({ canManage }: { canManage: boolean }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search name, email, code, department…"
-          className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#714B67] focus:outline-none"
+          className="input w-full max-w-xs rounded-lg px-3 py-2 text-sm"
         />
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="input rounded-lg px-3 py-2 text-sm"
         >
           <option value="">All roles</option>
           {EMPLOYEE_ROLES.map((r) => (
@@ -132,7 +131,7 @@ export function EmployeesPageClient({ canManage }: { canManage: boolean }) {
         <select
           value={activeFilter}
           onChange={(e) => setActiveFilter(e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="input rounded-lg px-3 py-2 text-sm"
         >
           <option value="">Active + archived</option>
           <option value="true">Active only</option>
@@ -173,7 +172,7 @@ export function EmployeesPageClient({ canManage }: { canManage: boolean }) {
                 <td className="px-4 py-3">
                   <Link
                     href={`/admin/employees/${row.id}`}
-                    className="font-medium text-[#714B67] hover:underline"
+                    className="font-medium text-brand-700 hover:underline"
                   >
                     {row.name}
                   </Link>
@@ -318,14 +317,14 @@ function CreateEmployee({
         <button
           type="submit"
           disabled={saving}
-          className="rounded-lg bg-[#714B67] px-4 py-2 text-sm font-medium text-white hover:bg-[#5b3a51] disabled:opacity-50"
+          className="rounded-lg btn-primary px-4 py-2 text-sm font-medium"
         >
           {saving ? "Saving…" : "Create"}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+          className="btn-secondary rounded-lg px-4 py-2 text-sm"
         >
           Cancel
         </button>
@@ -335,7 +334,7 @@ function CreateEmployee({
 }
 
 const inputCls =
-  "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#714B67] focus:outline-none";
+  "input w-full rounded-lg px-3 py-2 text-sm";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

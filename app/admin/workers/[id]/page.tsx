@@ -76,7 +76,7 @@ export default function AdminWorkerDetailPage() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2"
+            className="input w-full rounded-xl px-3 py-2"
           />
         </div>
         <div>
@@ -86,14 +86,14 @@ export default function AdminWorkerDetailPage() {
           <input
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2"
+            className="input w-full rounded-xl px-3 py-2"
           />
         </div>
         {message && <p className="text-sm text-brand-600">{message}</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
-          className="rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white"
+          className="rounded-xl btn-primary px-4 py-2 font-semibold"
         >
           Save changes
         </button>

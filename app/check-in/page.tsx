@@ -5,6 +5,7 @@ import { resolvePlatformUserForIdentity } from "@/lib/platform";
 import { CheckInForm } from "@/components/CheckInForm";
 import { SignInPanel } from "@/components/SignInPanel";
 import { SetupRequiredPanel } from "@/components/SetupRequiredPanel";
+import { PageBar } from "@/components/PageBar";
 
 export const metadata: Metadata = {
   title: "Attendance",
@@ -35,39 +36,25 @@ export default async function CheckInPage() {
 
   return (
     <main className="mx-auto w-full max-w-md pb-10">
-      <div
-        className="sticky top-0 z-10 -mx-4 mb-4 flex items-center gap-3 px-4 py-3 text-white rounded-b-2xl shadow-lg"
-        style={{ backgroundColor: "#714B67" }}
-      >
-        <Link
-          href="/"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-lg"
-          aria-label="Back to all apps"
-        >
-          ‹
-        </Link>
-        <div className="leading-tight">
-          <p className="text-sm font-semibold tracking-wide">Attendance</p>
-          <p className="text-xs text-white/70">Google sign-in · location required</p>
-        </div>
-        {showWorkspaceLink && (
-          <Link
-            href="/admin"
-            className="ml-auto rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold hover:bg-white/25"
-          >
-            Management
-          </Link>
-        )}
-      </div>
+      <PageBar
+        title="Attendance"
+        subtitle="Google sign-in · location required"
+        actions={
+          showWorkspaceLink ? (
+            <Link
+              href="/admin"
+              className="rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/25"
+            >
+              Management
+            </Link>
+          ) : null
+        }
+      />
 
       <div className="mb-4 text-center">
-        <p className="text-xs font-medium uppercase tracking-wider text-brand-600">
-          Attendance
-        </p>
-        <h1 className="mt-1 text-xl font-bold text-slate-900">
-          Hello, {firstName}
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="eyebrow">My workspace</p>
+        <h1 className="mt-1 text-xl font-bold text-ink">Hello, {firstName}</h1>
+        <p className="mt-1 text-sm text-ink-muted">
           Pick Head office or a project site, then check in or out.
         </p>
       </div>
